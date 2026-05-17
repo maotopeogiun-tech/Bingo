@@ -4,1001 +4,344 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📸 포토 빙고</title>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+body{
+  margin:0;
+  padding:20px;
+  background:#111827;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+}
 
-  :root {
-    --bg: #0a0a12;
-    --surface: #13131f;
-    --card: #1a1a2e;
-    --accent: #ff6b35;
-    --accent2: #ffd700;
-    --text: #f0e6d3;
-    --muted: #7a7a9d;
-    --bingo: #ffd700;
-  }
+h1{
+  margin-bottom:20px;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+.board{
+  width:min(90vw,500px);
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px 16px 48px;
-    position: relative;
-    overflow-x: hidden;
-  }
-  body::before {
-    content: ''; position: fixed; top: -40%; left: -20%;
-    width: 60vw; height: 60vw;
-    background: radial-gradient(circle, rgba(255,107,53,0.07) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  body::after {
-    content: ''; position: fixed; bottom: -30%; right: -20%;
-    width: 50vw; height: 50vw;
-    background: radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%);
-    pointer-events: none;
-  }
+.cell{
+  aspect-ratio:1;
+  background:#1f2937;
+  border-radius:12px;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  border:2px solid transparent;
+}
 
-  /* ── HEADER ── */
-  header { text-align: center; margin-bottom: 18px; animation: fadeDown 0.6s ease both; }
-  header h1 {
-    font-family: 'Black Han Sans', sans-serif;
-    font-size: clamp(1.8rem, 5vw, 2.8rem);
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    filter: drop-shadow(0 0 16px rgba(255,107,53,0.45));
-  }
-  header p { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+.cell img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 
-  /* ── ROOM BAR ── */
-  .room-bar {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
-    flex-wrap: wrap; justify-content: center;
-    animation: fadeDown 0.6s 0.05s ease both;
-    max-width: 600px; width: 100%;
-  }
-  .room-tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.placeholder{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#9ca3af;
+  font-size:14px;
+}
 
-  .room-tab {
-    display: flex; align-items: center; gap: 5px;
-    padding: 7px 14px; border-radius: 100px;
-    border: 1.5px solid rgba(255,255,255,0.1);
-    background: var(--card); color: var(--muted);
-    font-size: 0.8rem; font-weight: 700; cursor: pointer;
-    transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif; user-select: none;
-    position: relative;
-  }
-  .room-tab:hover { border-color: rgba(255,107,53,0.4); color: var(--text); }
-  .room-tab.active {
-    background: linear-gradient(135deg, var(--accent), #ff8c42);
-    border-color: transparent; color: #fff;
-    box-shadow: 0 3px 14px rgba(255,107,53,0.4);
-  }
-  .room-tab .lock-icon { font-size: 0.7rem; opacity: 0.75; }
-  .room-del {
-    display: none; font-size: 0.68rem; opacity: 0.7;
-    cursor: pointer; padding: 1px 3px; border-radius: 50%; line-height: 1;
-  }
-  .room-tab:hover .room-del,
-  .room-tab.active .room-del { display: inline; }
-  .room-del:hover { opacity: 1; background: rgba(0,0,0,0.25); }
+.cell.checked{
+  border:4px solid #facc15;
+}
 
-  .btn-add-room {
-    padding: 7px 14px; border-radius: 100px;
-    border: 1.5px dashed rgba(255,255,255,0.2);
-    background: transparent; color: var(--muted);
-    font-size: 0.8rem; font-weight: 700; cursor: pointer;
-    transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif;
-  }
-  .btn-add-room:hover { border-color: var(--accent2); color: var(--accent2); }
+.cell.checked::after{
+  content:"✓";
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:50px;
+  color:white;
+  background:rgba(0,0,0,0.4);
+}
 
-  /* ── ROOM HEADER (name + pw) ── */
-  .room-header {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 12px; animation: fadeDown 0.5s ease both;
-  }
-  .room-name-input {
-    background: transparent; border: none;
-    border-bottom: 2px solid rgba(255,255,255,0.1);
-    color: var(--text); font-family: 'Black Han Sans', sans-serif;
-    font-size: 1.05rem; text-align: center; padding: 5px 10px;
-    outline: none; width: 200px; letter-spacing: 0.05em; transition: border-color 0.2s;
-  }
-  .room-name-input::placeholder { color: var(--muted); font-weight: 300; font-family: 'Noto Sans KR', sans-serif; }
-  .room-name-input:focus { border-color: var(--accent); }
+.controls{
+  margin-bottom:20px;
+}
 
-  .btn-pw {
-    display: flex; align-items: center; gap: 5px;
-    padding: 6px 12px; border-radius: 100px;
-    border: 1.5px solid rgba(255,255,255,0.12);
-    background: var(--card); color: var(--muted);
-    font-size: 0.75rem; font-weight: 700; cursor: pointer;
-    transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif;
-    white-space: nowrap;
-  }
-  .btn-pw:hover { border-color: var(--accent2); color: var(--accent2); }
-  .btn-pw.has-pw { border-color: rgba(255,215,0,0.5); color: var(--accent2); background: rgba(255,215,0,0.08); }
+button{
+  padding:10px 18px;
+  border:none;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:14px;
+  margin:4px;
+}
 
-  /* ── MODE BADGE ── */
-  .mode-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 13px; border-radius: 100px;
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 10px;
-  }
-  .mode-badge.edit-mode { background: rgba(255,107,53,0.12); border: 1px solid rgba(255,107,53,0.35); color: var(--accent); }
-  .mode-badge.play-mode { background: rgba(255,215,0,0.10); border: 1px solid rgba(255,215,0,0.3); color: var(--accent2); }
-  .dot { width: 6px; height: 6px; border-radius: 50%; animation: blink 1.2s infinite; }
-  .edit-mode .dot { background: var(--accent); }
-  .play-mode .dot { background: var(--accent2); }
+.primary{
+  background:#f97316;
+  color:white;
+}
 
-  /* ── BINGO PIPS ── */
-  .bingo-count-bar { display: flex; gap: 7px; margin-bottom: 12px; }
-  .bingo-pip {
-    width: 32px; height: 32px; border-radius: 50%;
-    border: 2px solid rgba(255,215,0,0.2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.68rem; font-weight: 700; color: var(--muted); transition: all 0.4s;
-  }
-  .bingo-pip.lit {
-    background: var(--bingo); border-color: var(--bingo); color: #000;
-    box-shadow: 0 0 12px rgba(255,215,0,0.6); animation: popIn 0.4s ease;
-  }
+.danger{
+  background:#ef4444;
+  color:white;
+}
 
-  /* ── CONTROLS ── */
-  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
-  .btn {
-    padding: 9px 20px; border: none; border-radius: 100px;
-    font-family: 'Noto Sans KR', sans-serif; font-size: 0.82rem; font-weight: 700;
-    cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
-  }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), #ff8c42); color: #fff; box-shadow: 0 3px 16px rgba(255,107,53,0.35); }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 24px rgba(255,107,53,0.5); }
-  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
-  .btn-secondary:hover { border-color: var(--accent); }
-  .btn-danger { background: transparent; color: #ff4466; border: 1px solid rgba(255,68,102,0.35); }
-  .btn-danger:hover { background: rgba(255,68,102,0.1); }
+.mode{
+  margin-bottom:15px;
+  color:#facc15;
+}
 
-  /* ── BOARD ── */
-  .board-wrapper { animation: fadeUp 0.6s 0.15s ease both; position: relative; }
-  .board {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-    width: min(560px, calc(100vw - 32px));
-  }
-
-  /* LOCKED OVERLAY */
-  .board-lock-overlay {
-    position: absolute; inset: 0;
-    background: rgba(10,10,18,0.82);
-    border-radius: 14px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 12px; z-index: 20;
-    backdrop-filter: blur(6px);
-    animation: fadeIn 0.3s ease;
-  }
-  .board-lock-overlay .lock-big { font-size: 2.8rem; }
-  .board-lock-overlay p { color: var(--muted); font-size: 0.82rem; }
-  .lock-pw-row { display: flex; gap: 8px; align-items: center; }
-  .lock-pw-input {
-    background: var(--card); border: 1.5px solid rgba(255,255,255,0.12);
-    border-radius: 10px; padding: 9px 14px;
-    color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 0.9rem;
-    outline: none; width: 150px; transition: border-color 0.2s; letter-spacing: 0.1em;
-  }
-  .lock-pw-input:focus { border-color: var(--accent); }
-  .lock-pw-input.shake { animation: shake 0.4s ease; }
-
-  .cell {
-    aspect-ratio: 1; background: var(--card);
-    border: 1.5px solid rgba(255,255,255,0.07); border-radius: 12px;
-    position: relative; cursor: pointer; overflow: hidden;
-    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .cell:hover { border-color: rgba(255,107,53,0.45); transform: scale(1.03); box-shadow: 0 4px 14px rgba(255,107,53,0.18); }
-  .cell.has-image { cursor: default; }
-  .cell.has-image:hover { transform: scale(1.01); }
-  .cell.marked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,107,53,0.28), inset 0 0 18px rgba(255,107,53,0.1); }
-  .cell.marked::after {
-    content: ''; position: absolute; inset: 0;
-    background: rgba(255,107,53,0.2); border-radius: 10px; pointer-events: none;
-  }
-  .cell img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 10px; }
-  .cell-placeholder {
-    display: flex; flex-direction: column; align-items: center; gap: 5px;
-    color: var(--muted); font-size: 0.62rem; text-align: center; padding: 4px;
-    pointer-events: none; user-select: none;
-  }
-  .cell-placeholder .icon { font-size: 1.4rem; opacity: 0.45; }
-  .check-mark {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    font-size: 2.5rem; z-index: 10; pointer-events: none;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
-  }
-  .cell.marked .check-mark { transform: translate(-50%, -50%) scale(1); }
-  .cell.bingo-line { animation: bingoPulse 0.7s ease; }
-
-  /* ── INSTRUCTIONS ── */
-  .instructions {
-    margin-top: 16px;
-    background: var(--card); border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px; padding: 14px 18px;
-    width: min(560px, calc(100vw - 32px));
-    font-size: 0.78rem; color: var(--muted); line-height: 1.75;
-    animation: fadeUp 0.6s 0.25s ease both;
-  }
-  .instructions strong { color: var(--text); }
-
-  /* ── MODALS ── */
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100; opacity: 0; pointer-events: none;
-    transition: opacity 0.3s; backdrop-filter: blur(4px);
-  }
-  .modal-overlay.show { opacity: 1; pointer-events: all; }
-
-  /* bingo modal */
-  .modal {
-    background: var(--surface); border: 1px solid rgba(255,215,0,0.25);
-    border-radius: 24px; padding: 36px 44px; text-align: center;
-    max-width: 320px; width: 88%;
-    transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 0 50px rgba(255,215,0,0.15);
-  }
-  .modal-overlay.show .modal { transform: scale(1); }
-  .modal-emoji { font-size: 3.6rem; display: block; margin-bottom: 10px; animation: spinIn 0.5s ease; }
-  .modal h2 {
-    font-family: 'Black Han Sans', sans-serif; font-size: 2.2rem;
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    margin-bottom: 6px;
-  }
-  .modal p { color: var(--muted); font-size: 0.88rem; margin-bottom: 22px; }
-
-  /* generic small modal */
-  .small-modal {
-    background: var(--surface); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px; padding: 28px 32px;
-    max-width: 310px; width: 88%;
-    transform: scale(0.85); transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 0 40px rgba(0,0,0,0.5);
-  }
-  .modal-overlay.show .small-modal { transform: scale(1); }
-  .small-modal h3 { font-family: 'Black Han Sans', sans-serif; font-size: 1.25rem; margin-bottom: 6px; color: var(--text); }
-  .small-modal .sub { color: var(--muted); font-size: 0.78rem; margin-bottom: 16px; }
-  .field-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 5px; display: block; font-weight: 700; letter-spacing: 0.05em; }
-  .field-wrap { margin-bottom: 14px; }
-  .modal-field {
-    width: 100%; background: var(--card);
-    border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px;
-    padding: 10px 14px; color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif; font-size: 0.9rem;
-    outline: none; transition: border-color 0.2s;
-  }
-  .modal-field:focus { border-color: var(--accent); }
-  .modal-field.has-toggle { padding-right: 40px; letter-spacing: 0.12em; }
-  .field-rel { position: relative; }
-  .toggle-eye {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; color: var(--muted);
-    font-size: 1rem; padding: 0; transition: color 0.2s;
-  }
-  .toggle-eye:hover { color: var(--text); }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
-  .modal-error { color: #ff4466; font-size: 0.75rem; margin-top: -8px; margin-bottom: 10px; min-height: 1em; }
-
-  /* pw setting panel */
-  .pw-section { border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; padding-top: 14px; }
-  .pw-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .pw-toggle-label { font-size: 0.82rem; color: var(--text); font-weight: 700; }
-  .toggle-switch { position: relative; width: 38px; height: 22px; }
-  .toggle-switch input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute; cursor: pointer; inset: 0;
-    background: rgba(255,255,255,0.1); border-radius: 22px; transition: 0.3s;
-  }
-  .slider::before {
-    content: ''; position: absolute;
-    width: 16px; height: 16px; border-radius: 50%;
-    left: 3px; top: 3px; background: var(--muted); transition: 0.3s;
-  }
-  .toggle-switch input:checked + .slider { background: var(--accent); }
-  .toggle-switch input:checked + .slider::before { transform: translateX(16px); background: #fff; }
-
-  /* IMAGE MODAL */
-  .img-modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; cursor: zoom-out;
-  }
-  .img-modal-overlay.show { opacity: 1; pointer-events: all; }
-  .img-modal-overlay img { max-width: 90vw; max-height: 85vh; object-fit: contain; border-radius: 14px; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
-
-  /* CONTEXT MENU */
-  .ctx-menu {
-    position: fixed; background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-    padding: 6px; z-index: 300; display: none; flex-direction: column;
-    gap: 2px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 148px;
-  }
-  .ctx-menu.show { display: flex; }
-  .ctx-item {
-    padding: 9px 13px; border-radius: 8px; cursor: pointer;
-    font-size: 0.8rem; color: var(--text); transition: background 0.15s;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .ctx-item:hover { background: rgba(255,255,255,0.07); }
-  .ctx-item.danger { color: #ff4466; }
-  .ctx-item.danger:hover { background: rgba(255,68,102,0.1); }
-
-  .file-input { display: none; }
-
-  /* CONFETTI */
-  .confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
-  .confetti-piece { position: absolute; top: -10px; animation: confettiFall linear forwards; }
-
-  /* ── KEYFRAMES ── */
-  @keyframes fadeDown { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes fadeUp   { from { opacity: 0; transform: translateY(14px); }  to { opacity: 1; transform: translateY(0); } }
-  @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes popIn    { 0% { transform: scale(0.5); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
-  @keyframes spinIn   { from { transform: rotate(-20deg) scale(0.5); } to { transform: rotate(0deg) scale(1); } }
-  @keyframes blink    { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-  @keyframes bingoPulse {
-    0%   { box-shadow: 0 0 0 rgba(255,215,0,0); }
-    50%  { box-shadow: 0 0 0 4px rgba(255,215,0,0.7), inset 0 0 28px rgba(255,215,0,0.18); }
-    100% { box-shadow: 0 0 0 rgba(255,215,0,0); }
-  }
-  @keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20%,60% { transform: translateX(-6px); }
-    40%,80% { transform: translateX(6px); }
-  }
+input[type=file]{
+  display:none;
+}
 </style>
 </head>
+
 <body>
 
-<header>
-  <h1>📸 포토 빙고</h1>
-  <p>방을 만들고 사진을 채워 빙고를 완성하세요!</p>
-</header>
+<h1>📸 포토 빙고</h1>
 
-<!-- ROOM TABS -->
-<div class="room-bar">
-  <div class="room-tabs" id="roomTabs"></div>
-  <button class="btn-add-room" id="addRoomBtn">＋ 방 추가</button>
-</div>
-
-<!-- ROOM HEADER: name + pw button -->
-<div class="room-header">
-  <input class="room-name-input" id="roomNameInput" placeholder="방 이름..." maxlength="20" />
-  <button class="btn-pw" id="pwSettingBtn">🔒 비밀번호</button>
-</div>
-
-<!-- MODE BADGE -->
-<div id="modeBadge" class="mode-badge edit-mode">
-  <div class="dot"></div>
-  <span id="modeText">사진 추가 모드</span>
-</div>
-
-<!-- BINGO PIPS -->
-<div class="bingo-count-bar" id="bingoPips"></div>
-
-<!-- CONTROLS -->
 <div class="controls">
-  <button class="btn btn-primary" id="toggleModeBtn">🎮 게임 시작</button>
-  <button class="btn btn-danger" id="resetBtn">🗑 초기화</button>
+  <button class="primary" id="modeBtn">🎮 게임 시작</button>
+  <button class="danger" id="resetBtn">🗑 초기화</button>
 </div>
 
-<!-- BOARD -->
-<div class="board-wrapper">
-  <div class="board" id="board"></div>
-  <!-- lock overlay injected here by JS -->
+<div class="mode" id="modeText">
+사진 추가 모드
 </div>
 
-<!-- INSTRUCTIONS -->
-<div class="instructions">
-  <strong>사용 방법</strong><br>
-  ① <strong>＋ 방 추가</strong>로 1반, 2반 등 원하는 방을 만드세요<br>
-  ② <strong>🔒 비밀번호</strong>로 방마다 잠금을 걸 수 있어요<br>
-  ③ 빈 칸을 <strong>클릭</strong>하면 사진을 올릴 수 있어요<br>
-  ④ 올린 사진을 <strong>우클릭</strong>하면 보기/삭제 메뉴가 나와요<br>
-  ⑤ <strong>게임 시작</strong>을 누르면 클릭으로 칸을 체크할 수 있어요<br>
-  ⑥ 가로·세로·대각선 5칸을 완성하면 <strong>빙고!</strong>
-</div>
+<div class="board" id="board"></div>
 
-<input type="file" class="file-input" id="fileInput" accept="image/*">
-
-<!-- Bingo Modal -->
-<div class="modal-overlay" id="bingoModal">
-  <div class="modal">
-    <span class="modal-emoji">🎉</span>
-    <h2>BINGO!</h2>
-    <p id="bingoMsg"></p>
-    <button class="btn btn-primary" onclick="closeModal('bingoModal')">계속하기</button>
-  </div>
-</div>
-
-<!-- Add Room Modal -->
-<div class="modal-overlay" id="addRoomModal">
-  <div class="small-modal">
-    <h3>🏠 방 추가</h3>
-    <p class="sub">방 이름과 선택적으로 비밀번호를 설정하세요</p>
-
-    <div class="field-wrap">
-      <label class="field-label">방 이름</label>
-      <input class="modal-field" id="newRoomName" placeholder="예: 1반, 2반, 우리팀..." maxlength="20" />
-    </div>
-
-    <div class="pw-section">
-      <div class="pw-toggle-row">
-        <span class="pw-toggle-label">🔒 비밀번호 설정</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="newRoomPwToggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div id="newRoomPwFields" style="display:none">
-        <div class="field-wrap">
-          <label class="field-label">비밀번호</label>
-          <div class="field-rel">
-            <input class="modal-field has-toggle" type="password" id="newRoomPw" placeholder="비밀번호 입력" maxlength="20" />
-            <button class="toggle-eye" onclick="toggleEye('newRoomPw',this)">👁</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:18px">
-      <button class="btn btn-secondary" onclick="closeModal('addRoomModal')" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmAddRoom" style="padding:8px 16px">만들기</button>
-    </div>
-  </div>
-</div>
-
-<!-- PW Setting Modal (for existing room) -->
-<div class="modal-overlay" id="pwSettingModal">
-  <div class="small-modal">
-    <h3>🔐 비밀번호 설정</h3>
-    <p class="sub" id="pwSettingRoomName"></p>
-
-    <div class="pw-section" style="border:none;padding:0;margin:0">
-      <div class="pw-toggle-row">
-        <span class="pw-toggle-label">비밀번호 사용</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="existingPwToggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div id="existingPwFields">
-        <div class="field-wrap">
-          <label class="field-label">새 비밀번호</label>
-          <div class="field-rel">
-            <input class="modal-field has-toggle" type="password" id="existingPw" placeholder="비밀번호 입력 (빈칸=잠금 해제)" maxlength="20" />
-            <button class="toggle-eye" onclick="toggleEye('existingPw',this)">👁</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:18px">
-      <button class="btn btn-secondary" onclick="closeModal('pwSettingModal')" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmPwSetting" style="padding:8px 16px">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- Unlock Modal -->
-<div class="modal-overlay" id="unlockModal">
-  <div class="small-modal">
-    <h3>🔒 잠긴 방</h3>
-    <p class="sub" id="unlockRoomLabel">이 방은 비밀번호로 잠겨 있어요</p>
-    <div class="field-wrap">
-      <label class="field-label">비밀번호</label>
-      <div class="field-rel">
-        <input class="modal-field has-toggle" type="password" id="unlockPwInput" placeholder="비밀번호를 입력하세요" maxlength="20" />
-        <button class="toggle-eye" onclick="toggleEye('unlockPwInput',this)">👁</button>
-      </div>
-    </div>
-    <div class="modal-error" id="unlockError"></div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="cancelUnlock()" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmUnlock" style="padding:8px 16px">확인</button>
-    </div>
-  </div>
-</div>
-
-<!-- Image preview -->
-<div class="img-modal-overlay" id="imgModal" onclick="closeImgModal()">
-  <img id="imgModalSrc" src="" alt="">
-</div>
-
-<!-- Context Menu -->
-<div class="ctx-menu" id="ctxMenu">
-  <div class="ctx-item" id="ctxView">👁 크게 보기</div>
-  <div class="ctx-item danger" id="ctxDelete">🗑 사진 삭제</div>
-</div>
-
-<div class="confetti-container" id="confettiContainer"></div>
+<input type="file" id="fileInput" accept="image/*">
 
 <script>
-// ════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════
-function makeRoom(name, password) {
-  return {
-    name,
-    password: password || '',   // '' = no lock
-    unlocked: true,             // becomes false when locked & not yet entered
-    cells: Array.from({length:25}, () => ({image:null, marked:false})),
-    mode: 'edit',
-    bingoCount: 0,
-    announcedBingos: new Set()
-  };
+const board = document.getElementById("board");
+const fileInput = document.getElementById("fileInput");
+const modeBtn = document.getElementById("modeBtn");
+const modeText = document.getElementById("modeText");
+
+let mode = "edit";
+let selectedCell = null;
+
+let cells = [];
+
+// 저장
+function saveData(){
+  localStorage.setItem("photoBingoData", JSON.stringify(cells));
 }
 
-let rooms = [makeRoom('1반')];
-let currentRoomIdx = 0;
-function room() { return rooms[currentRoomIdx]; }
+// 불러오기
+function loadData(){
+  const saved = localStorage.getItem("photoBingoData");
 
-// pending unlock target
-let pendingUnlockIdx = null;
-
-// ════════════════════════════════════════
-//  DOM
-// ════════════════════════════════════════
-const board        = document.getElementById('board');
-const fileInput    = document.getElementById('fileInput');
-const ctxMenu      = document.getElementById('ctxMenu');
-const toggleModeBtn= document.getElementById('toggleModeBtn');
-const modeBadge    = document.getElementById('modeBadge');
-const modeText     = document.getElementById('modeText');
-const bingoPips    = document.getElementById('bingoPips');
-const roomTabs     = document.getElementById('roomTabs');
-const roomNameInput= document.getElementById('roomNameInput');
-const pwSettingBtn = document.getElementById('pwSettingBtn');
-
-let pendingCell = null;
-let ctxCell     = null;
-
-// ════════════════════════════════════════
-//  PIPS
-// ════════════════════════════════════════
-for (let i=0;i<5;i++){
-  const pip = document.createElement('div');
-  pip.className='bingo-pip'; pip.id='pip-'+i; pip.textContent=i+1;
-  bingoPips.appendChild(pip);
+  if(saved){
+    cells = JSON.parse(saved);
+  }else{
+    cells = Array.from({length:25}, ()=>({
+      image:null,
+      checked:false
+    }));
+  }
 }
 
-// ════════════════════════════════════════
-//  ROOM TABS
-// ════════════════════════════════════════
-function renderRoomTabs() {
-  roomTabs.innerHTML = '';
-  rooms.forEach((r, i) => {
-    const tab = document.createElement('div');
-    tab.className = 'room-tab' + (i===currentRoomIdx ? ' active' : '');
+// 보드 렌더링
+function renderBoard(){
+  board.innerHTML = "";
 
-    if (r.password) {
-      const lock = document.createElement('span');
-      lock.className = 'lock-icon';
-      lock.textContent = r.unlocked ? '🔓' : '🔒';
-      tab.appendChild(lock);
+  cells.forEach((cell,index)=>{
+
+    const div = document.createElement("div");
+    div.className = "cell";
+
+    if(cell.checked){
+      div.classList.add("checked");
     }
 
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = r.name;
-    nameSpan.addEventListener('click', () => trySwitch(i));
+    // 이미지 있음
+    if(cell.image){
 
-    const del = document.createElement('span');
-    del.className = 'room-del'; del.textContent = '✕'; del.title = '방 삭제';
-    del.addEventListener('click', e => { e.stopPropagation(); deleteRoom(i); });
+      const img = document.createElement("img");
+      img.src = cell.image;
+      div.appendChild(img);
 
-    tab.appendChild(nameSpan);
-    tab.appendChild(del);
-    roomTabs.appendChild(tab);
-  });
+    }else{
 
-  // Update room name input & pw button
-  roomNameInput.value = room().name;
-  updatePwBtn();
-}
-
-function updatePwBtn() {
-  const r = room();
-  pwSettingBtn.className = 'btn-pw' + (r.password ? ' has-pw' : '');
-  pwSettingBtn.textContent = r.password ? '🔐 비밀번호 변경' : '🔒 비밀번호 설정';
-}
-
-// ── switch with lock check ──
-function trySwitch(i) {
-  const target = rooms[i];
-  if (target.password && !target.unlocked) {
-    pendingUnlockIdx = i;
-    document.getElementById('unlockRoomLabel').textContent = '"' + target.name + '" 방은 잠겨 있어요';
-    document.getElementById('unlockPwInput').value = '';
-    document.getElementById('unlockError').textContent = '';
-    openModal('unlockModal');
-    setTimeout(() => document.getElementById('unlockPwInput').focus(), 200);
-  } else {
-    switchRoom(i);
-  }
-}
-
-function switchRoom(i) {
-  currentRoomIdx = i;
-  renderRoomTabs();
-  renderBoard();
-  syncModeUI();
-  updatePips();
-}
-
-function deleteRoom(i) {
-  if (rooms.length === 1) { alert('마지막 방은 삭제할 수 없어요!'); return; }
-  if (!confirm('"' + rooms[i].name + '" 방을 삭제할까요?')) return;
-  rooms.splice(i, 1);
-  if (currentRoomIdx >= rooms.length) currentRoomIdx = rooms.length - 1;
-  renderRoomTabs(); renderBoard(); syncModeUI(); updatePips();
-}
-
-// Room name live edit
-roomNameInput.addEventListener('input', () => {
-  room().name = roomNameInput.value || '방';
-  renderRoomTabs();
-});
-
-// ════════════════════════════════════════
-//  ADD ROOM MODAL
-// ════════════════════════════════════════
-document.getElementById('addRoomBtn').addEventListener('click', () => {
-  document.getElementById('newRoomName').value = '';
-  document.getElementById('newRoomPw').value = '';
-  document.getElementById('newRoomPwToggle').checked = false;
-  document.getElementById('newRoomPwFields').style.display = 'none';
-  openModal('addRoomModal');
-  setTimeout(() => document.getElementById('newRoomName').focus(), 200);
-});
-
-document.getElementById('newRoomPwToggle').addEventListener('change', function() {
-  document.getElementById('newRoomPwFields').style.display = this.checked ? 'block' : 'none';
-});
-
-document.getElementById('newRoomName').addEventListener('keydown', e => { if(e.key==='Enter') confirmAddRoom(); });
-document.getElementById('confirmAddRoom').addEventListener('click', confirmAddRoom);
-
-function confirmAddRoom() {
-  const name = document.getElementById('newRoomName').value.trim() || (rooms.length+1)+'반';
-  const usePw = document.getElementById('newRoomPwToggle').checked;
-  const pw = usePw ? document.getElementById('newRoomPw').value : '';
-  const r = makeRoom(name, pw);
-  rooms.push(r);
-  currentRoomIdx = rooms.length - 1;
-  closeModal('addRoomModal');
-  renderRoomTabs(); renderBoard(); syncModeUI(); updatePips();
-}
-
-// ════════════════════════════════════════
-//  PW SETTING (existing room)
-// ════════════════════════════════════════
-pwSettingBtn.addEventListener('click', () => {
-  const r = room();
-  document.getElementById('pwSettingRoomName').textContent = '"' + r.name + '" 방의 비밀번호';
-  document.getElementById('existingPwToggle').checked = !!r.password;
-  document.getElementById('existingPwFields').style.display = r.password ? 'block' : 'none';
-  document.getElementById('existingPw').value = '';
-  openModal('pwSettingModal');
-  setTimeout(() => document.getElementById('existingPw').focus(), 200);
-});
-
-document.getElementById('existingPwToggle').addEventListener('change', function() {
-  document.getElementById('existingPwFields').style.display = this.checked ? 'block' : 'none';
-});
-
-document.getElementById('confirmPwSetting').addEventListener('click', () => {
-  const r = room();
-  const usePw = document.getElementById('existingPwToggle').checked;
-  if (usePw) {
-    const pw = document.getElementById('existingPw').value;
-    r.password = pw;
-    r.unlocked = true; // current user stays unlocked
-  } else {
-    r.password = '';
-    r.unlocked = true;
-  }
-  closeModal('pwSettingModal');
-  renderRoomTabs();
-});
-
-// ════════════════════════════════════════
-//  UNLOCK MODAL
-// ════════════════════════════════════════
-document.getElementById('unlockPwInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmUnlock(); });
-document.getElementById('confirmUnlock').addEventListener('click', confirmUnlock);
-
-function confirmUnlock() {
-  if (pendingUnlockIdx === null) return;
-  const target = rooms[pendingUnlockIdx];
-  const input = document.getElementById('unlockPwInput').value;
-  if (input === target.password) {
-    target.unlocked = true;
-    closeModal('unlockModal');
-    switchRoom(pendingUnlockIdx);
-    pendingUnlockIdx = null;
-  } else {
-    const field = document.getElementById('unlockPwInput');
-    document.getElementById('unlockError').textContent = '비밀번호가 틀렸어요 🔒';
-    field.classList.remove('shake');
-    void field.offsetWidth;
-    field.classList.add('shake');
-    field.value = '';
-  }
-}
-
-function cancelUnlock() {
-  pendingUnlockIdx = null;
-  closeModal('unlockModal');
-}
-
-// Lock room when leaving (optional: re-lock on tab switch away)
-// We re-lock a room whenever you switch away from it (if it has a pw)
-function lockRoomIfNeeded(idx) {
-  const r = rooms[idx];
-  if (r && r.password) r.unlocked = false;
-}
-
-// ════════════════════════════════════════
-//  BOARD
-// ════════════════════════════════════════
-function renderBoard() {
-  board.innerHTML = '';
-  const r = room();
-
-  // If locked, show overlay
-  if (r.password && !r.unlocked) {
-    board.innerHTML = '<div class="cell" style="opacity:0.15"></div>'.repeat(25);
-    const overlay = document.createElement('div');
-    overlay.className = 'board-lock-overlay';
-    overlay.innerHTML = `
-      <div class="lock-big">🔒</div>
-      <p>"${r.name}" 방은 잠겨 있어요</p>
-      <div class="lock-pw-row">
-        <input class="lock-pw-input" type="password" id="inlinePwInput" placeholder="비밀번호..." maxlength="20" />
-        <button class="btn btn-primary" id="inlineUnlockBtn" style="padding:9px 16px">확인</button>
-      </div>
-      <div class="modal-error" id="inlineError"></div>`;
-    board.parentElement.appendChild(overlay);
-
-    document.getElementById('inlinePwInput').addEventListener('keydown', e => { if(e.key==='Enter') inlineUnlock(); });
-    document.getElementById('inlineUnlockBtn').addEventListener('click', inlineUnlock);
-    return;
-  }
-
-  // Remove any old overlay
-  const old = board.parentElement.querySelector('.board-lock-overlay');
-  if (old) old.remove();
-
-  r.cells.forEach((cell, i) => {
-    const el = document.createElement('div');
-    el.className = 'cell';
-
-    if (cell.image) {
-      el.classList.add('has-image');
-      const img = document.createElement('img');
-      img.src = cell.image; img.draggable = false;
-      el.appendChild(img);
-      const check = document.createElement('div');
-      check.className = 'check-mark'; check.textContent = '✓';
-      el.appendChild(check);
-      if (r.mode === 'edit')
-        el.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(e, i); });
-    } else {
-      const ph = document.createElement('div');
-      ph.className = 'cell-placeholder';
-      ph.innerHTML = '<div class="icon">📷</div><span>사진 추가</span>';
-      el.appendChild(ph);
+      const placeholder = document.createElement("div");
+      placeholder.className = "placeholder";
+      placeholder.innerText = "사진 추가";
+      div.appendChild(placeholder);
     }
 
-    if (cell.marked) el.classList.add('marked');
-    el.addEventListener('click', () => handleCellClick(i));
-    board.appendChild(el);
+    // 클릭
+    div.addEventListener("click",()=>{
+
+      // 편집모드
+      if(mode === "edit"){
+
+        if(!cell.image){
+          selectedCell = index;
+          fileInput.click();
+        }
+
+      }else{
+
+        // 게임모드
+        if(cell.image){
+          cell.checked = !cell.checked;
+          saveData();
+          renderBoard();
+          checkBingo();
+        }
+
+      }
+
+    });
+
+    // 우클릭 삭제
+    div.addEventListener("contextmenu",(e)=>{
+      e.preventDefault();
+
+      if(mode === "edit" && cell.image){
+
+        const ok = confirm("사진 삭제할까요?");
+
+        if(ok){
+          cell.image = null;
+          cell.checked = false;
+
+          saveData();
+          renderBoard();
+        }
+
+      }
+
+    });
+
+    board.appendChild(div);
+
   });
+
 }
 
-function inlineUnlock() {
-  const r = room();
-  const input = document.getElementById('inlinePwInput');
-  const errEl = document.getElementById('inlineError');
-  if (input.value === r.password) {
-    r.unlocked = true;
-    renderBoard();
-    renderRoomTabs();
-  } else {
-    errEl.textContent = '비밀번호가 틀렸어요 🔒';
-    input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake');
-    input.value = '';
-  }
-}
+// 파일 업로드
+fileInput.addEventListener("change",(e)=>{
 
-// ════════════════════════════════════════
-//  CELL CLICK
-// ════════════════════════════════════════
-function handleCellClick(i) {
-  const r = room();
-  const cell = r.cells[i];
-  if (r.mode === 'edit') {
-    if (!cell.image) { pendingCell = i; fileInput.click(); }
-  } else {
-    if (!cell.image) return;
-    cell.marked = !cell.marked;
-    renderBoard(); checkBingo();
-  }
-}
-
-// ════════════════════════════════════════
-//  FILE UPLOAD
-// ════════════════════════════════════════
-fileInput.addEventListener('change', e => {
   const file = e.target.files[0];
-  if (!file || pendingCell===null) return;
+
+  if(!file || selectedCell === null) return;
+
   const reader = new FileReader();
-  reader.onload = ev => { room().cells[pendingCell].image = ev.target.result; pendingCell=null; renderBoard(); };
+
+  reader.onload = (ev)=>{
+
+    cells[selectedCell].image = ev.target.result;
+
+    saveData();
+    renderBoard();
+
+    selectedCell = null;
+
+  };
+
   reader.readAsDataURL(file);
-  fileInput.value = '';
+
+  fileInput.value = "";
+
 });
 
-// ════════════════════════════════════════
-//  CONTEXT MENU
-// ════════════════════════════════════════
-function showCtxMenu(e, i) {
-  ctxCell = i;
-  ctxMenu.style.left = Math.min(e.clientX, window.innerWidth-170)+'px';
-  ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight-90)+'px';
-  ctxMenu.classList.add('show');
-  e.stopPropagation();
-}
-document.getElementById('ctxView').addEventListener('click', () => {
-  if (ctxCell!==null && room().cells[ctxCell].image) {
-    document.getElementById('imgModalSrc').src = room().cells[ctxCell].image;
-    document.getElementById('imgModal').classList.add('show');
+// 모드 변경
+modeBtn.addEventListener("click",()=>{
+
+  if(mode === "edit"){
+
+    mode = "play";
+
+    cells.forEach(c=>{
+      c.checked = false;
+    });
+
+    modeBtn.innerText = "✏️ 편집 모드";
+    modeText.innerText = "게임 플레이 모드";
+
+  }else{
+
+    mode = "edit";
+
+    modeBtn.innerText = "🎮 게임 시작";
+    modeText.innerText = "사진 추가 모드";
+
   }
-  ctxMenu.classList.remove('show');
-});
-document.getElementById('ctxDelete').addEventListener('click', () => {
-  if (ctxCell!==null) { room().cells[ctxCell].image=null; room().cells[ctxCell].marked=false; renderBoard(); }
-  ctxMenu.classList.remove('show'); ctxCell=null;
-});
-document.addEventListener('click', () => ctxMenu.classList.remove('show'));
 
-// ════════════════════════════════════════
-//  MODE
-// ════════════════════════════════════════
-toggleModeBtn.addEventListener('click', () => {
-  const r = room();
-  if (r.mode==='edit') {
-    r.mode='play'; r.cells.forEach(c=>c.marked=false);
-    r.announcedBingos=new Set(); r.bingoCount=0;
-  } else {
-    r.mode='edit'; r.announcedBingos=new Set(); r.bingoCount=0;
+  saveData();
+  renderBoard();
+
+});
+
+// 초기화
+document.getElementById("resetBtn").addEventListener("click",()=>{
+
+  const ok = confirm("전체 초기화할까요?");
+
+  if(!ok) return;
+
+  localStorage.removeItem("photoBingoData");
+
+  cells = Array.from({length:25}, ()=>({
+    image:null,
+    checked:false
+  }));
+
+  renderBoard();
+
+});
+
+// 빙고 체크
+function checkBingo(){
+
+  const lines = [];
+
+  // 가로
+  for(let r=0;r<5;r++){
+    lines.push([r*5,r*5+1,r*5+2,r*5+3,r*5+4]);
   }
-  syncModeUI(); updatePips(); renderBoard();
-});
 
-function syncModeUI() {
-  const r = room();
-  if (r.mode==='edit') {
-    toggleModeBtn.textContent='🎮 게임 시작';
-    modeBadge.className='mode-badge edit-mode'; modeText.textContent='사진 추가 모드';
-  } else {
-    toggleModeBtn.textContent='✏️ 편집 모드로';
-    modeBadge.className='mode-badge play-mode'; modeText.textContent='게임 플레이 모드';
+  // 세로
+  for(let c=0;c<5;c++){
+    lines.push([c,c+5,c+10,c+15,c+20]);
   }
-}
 
-// ════════════════════════════════════════
-//  RESET
-// ════════════════════════════════════════
-document.getElementById('resetBtn').addEventListener('click', () => {
-  if (!confirm('"'+room().name+'" 방을 초기화할까요?')) return;
-  const r = room();
-  r.cells.forEach(c=>{c.image=null;c.marked=false;});
-  r.mode='edit'; r.announcedBingos=new Set(); r.bingoCount=0;
-  syncModeUI(); updatePips(); renderBoard();
-});
+  // 대각선
+  lines.push([0,6,12,18,24]);
+  lines.push([4,8,12,16,20]);
 
-// ════════════════════════════════════════
-//  BINGO CHECK
-// ════════════════════════════════════════
-function getLines() {
-  const lines=[];
-  for(let r=0;r<5;r++) lines.push([r*5,r*5+1,r*5+2,r*5+3,r*5+4]);
-  for(let c=0;c<5;c++) lines.push([c,c+5,c+10,c+15,c+20]);
-  lines.push([0,6,12,18,24]); lines.push([4,8,12,16,20]);
-  return lines;
-}
+  let bingo = 0;
 
-function checkBingo() {
-  const r=room(); const lines=getLines();
-  const newBingos=[]; const completedIdx=new Set();
-  lines.forEach((line,li) => {
-    if (line.every(i=>r.cells[i].marked)) {
-      if (!r.announcedBingos.has(li)) { newBingos.push(li); r.announcedBingos.add(li); }
-      line.forEach(i=>completedIdx.add(i));
+  lines.forEach(line=>{
+
+    const ok = line.every(i=>cells[i].checked);
+
+    if(ok){
+      bingo++;
     }
+
   });
-  board.querySelectorAll('.cell').forEach((el,i)=>{
-    el.classList.remove('bingo-line');
-    if(completedIdx.has(i)) setTimeout(()=>el.classList.add('bingo-line'),50);
-  });
-  r.bingoCount=r.announcedBingos.size; updatePips();
-  if (newBingos.length>0) {
-    const msgs=['','첫 번째 빙고! 🎊','두 번째 빙고!! 🔥','세 번째 빙고!!! 🌟','네 번째 빙고!!!! 💥','풀 빙고! 완벽해요! 🏆'];
-    document.getElementById('bingoMsg').textContent=msgs[Math.min(r.bingoCount,5)];
-    openModal('bingoModal'); launchConfetti();
+
+  if(bingo > 0){
+    alert(`🎉 ${bingo}빙고 완성!`);
   }
+
 }
 
-function updatePips() {
-  const count=room().bingoCount;
-  for(let i=0;i<5;i++) document.getElementById('pip-'+i).classList.toggle('lit',i<count);
-}
-
-// ════════════════════════════════════════
-//  MODALS
-// ════════════════════════════════════════
-function openModal(id)  { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-function closeImgModal(){ document.getElementById('imgModal').classList.remove('show'); }
-
-// close on backdrop
-['bingoModal','addRoomModal','pwSettingModal','unlockModal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => {
-    if (e.target===document.getElementById(id)) {
-      if (id==='unlockModal') cancelUnlock();
-      else closeModal(id);
-    }
-  });
-});
-
-// toggle eye (password show/hide)
-function toggleEye(fieldId, btn) {
-  const f = document.getElementById(fieldId);
-  if (f.type==='password') { f.type='text'; btn.textContent='🙈'; }
-  else { f.type='password'; btn.textContent='👁'; }
-}
-
-// ════════════════════════════════════════
-//  CONFETTI
-// ════════════════════════════════════════
-function launchConfetti() {
-  const container=document.getElementById('confettiContainer');
-  const colors=['#ff6b35','#ffd700','#ff4499','#44ffaa','#4499ff','#ff44dd','#fff'];
-  for(let i=0;i<70;i++){
-    const p=document.createElement('div'); p.className='confetti-piece';
-    p.style.left=Math.random()*100+'vw';
-    p.style.background=colors[Math.floor(Math.random()*colors.length)];
-    p.style.borderRadius=Math.random()>0.5?'50%':'2px';
-    p.style.width=(Math.random()*10+6)+'px'; p.style.height=p.style.width;
-    p.style.animationDuration=(Math.random()*2+1.5)+'s';
-    p.style.animationDelay=Math.random()*0.8+'s';
-    container.appendChild(p); setTimeout(()=>p.remove(),4000);
-  }
-}
-
-// ════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════
-renderRoomTabs();
+// 시작
+loadData();
 renderBoard();
-syncModeUI();
 </script>
+
 </body>
 </html>
