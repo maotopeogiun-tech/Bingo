@@ -1,1039 +1,768 @@
+# complete index.html
+
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>추억 수집 BANGO!</title>
+<title>BANGO! Multiplayer</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff6b35">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+body {
+  margin:0;
+  background:#0a0a12;
+  color:white;
+  font-family:sans-serif;
+  padding:20px;
+}
 
-  :root {
-    --bg: #0a0a12;
-    --surface: #13131f;
-    --card: #1a1a2e;
-    --accent: #ff6b35;
-    --accent2: #ffd700;
-    --text: #f0e6d3;
-    --muted: #7a7a9d;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-    padding: 20px 16px 60px; overflow-x: hidden;
-  }
-  body::before {
-    content:''; position:fixed; top:-40%; left:-20%; width:60vw; height:60vw;
-    background:radial-gradient(circle,rgba(255,107,53,.07) 0%,transparent 70%); pointer-events:none;
-  }
-  body::after {
-    content:''; position:fixed; bottom:-30%; right:-20%; width:50vw; height:50vw;
-    background:radial-gradient(circle,rgba(255,215,0,.05) 0%,transparent 70%); pointer-events:none;
-  }
+h1 {
+  color:#ff6b35;
+}
 
-  /* HEADER */
-  header { text-align:center; margin-bottom:16px; animation:fadeDown .6s ease both; }
-  header h1 {
-    font-family:'Black Han Sans',sans-serif; font-size:clamp(1.8rem,5vw,2.8rem);
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-    filter:drop-shadow(0 0 16px rgba(255,107,53,.45));
-  }
-  header p { color:var(--muted); font-size:.8rem; margin-top:4px; }
+.board {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  max-width:600px;
+}
 
-  /* ROOM BAR */
-  .room-bar {
-    display:flex; align-items:center; gap:8px; margin-bottom:14px;
-    flex-wrap:wrap; justify-content:center; max-width:620px; width:100%;
-    animation:fadeDown .6s .05s ease both;
-  }
-  .room-tabs { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-  .room-tab {
-    display:flex; align-items:center; gap:5px; padding:7px 14px;
-    border-radius:100px; border:1.5px solid rgba(255,255,255,.1);
-    background:var(--card); color:var(--muted); font-size:.8rem; font-weight:700;
-    cursor:pointer; transition:all .2s; font-family:'Noto Sans KR',sans-serif; user-select:none;
-  }
-  .room-tab:hover { border-color:rgba(255,107,53,.4); color:var(--text); }
-  .room-tab.active {
-    background:linear-gradient(135deg,var(--accent),#ff8c42);
-    border-color:transparent; color:#fff; box-shadow:0 3px 14px rgba(255,107,53,.4);
-  }
-  .room-tab .lock-icon { font-size:.7rem; opacity:.75; }
-  .room-del {
-    display:none; font-size:.68rem; opacity:.7; cursor:pointer;
-    padding:1px 3px; border-radius:50%; line-height:1;
-  }
-  .room-tab:hover .room-del, .room-tab.active .room-del { display:inline; }
-  .room-del:hover { opacity:1; background:rgba(0,0,0,.25); }
-  .btn-add-room {
-    padding:7px 14px; border-radius:100px; border:1.5px dashed rgba(255,255,255,.2);
-    background:transparent; color:var(--muted); font-size:.8rem; font-weight:700;
-    cursor:pointer; transition:all .2s; font-family:'Noto Sans KR',sans-serif;
-  }
-  .btn-add-room:hover { border-color:var(--accent2); color:var(--accent2); }
+.cell {
+  aspect-ratio:1;
+  background:#1a1a2e;
+  border-radius:10px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  border:2px solid rgba(255,255,255,.1);
+}
 
-  /* ROOM HEADER */
-  .room-header {
-    display:flex; align-items:center; gap:10px; margin-bottom:12px;
-    animation:fadeDown .5s ease both;
-  }
-  .room-name-input {
-    background:transparent; border:none; border-bottom:2px solid rgba(255,255,255,.1);
-    color:var(--text); font-family:'Black Han Sans',sans-serif;
-    font-size:1.05rem; text-align:center; padding:5px 10px;
-    outline:none; width:180px; letter-spacing:.05em; transition:border-color .2s;
-  }
-  .room-name-input::placeholder { color:var(--muted); font-weight:300; font-family:'Noto Sans KR',sans-serif; }
-  .room-name-input:focus { border-color:var(--accent); }
-  .btn-icon {
-    display:flex; align-items:center; gap:5px; padding:6px 12px;
-    border-radius:100px; border:1.5px solid rgba(255,255,255,.12);
-    background:var(--card); color:var(--muted); font-size:.75rem; font-weight:700;
-    cursor:pointer; transition:all .2s; font-family:'Noto Sans KR',sans-serif; white-space:nowrap;
-  }
-  .btn-icon:hover { border-color:var(--accent); color:var(--accent); }
-  .btn-icon.has-pw { border-color:rgba(255,215,0,.5); color:var(--accent2); background:rgba(255,215,0,.08); }
+.cell img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 
-  /* MODE BADGE */
-  .mode-badge {
-    display:inline-flex; align-items:center; gap:6px; padding:4px 13px;
-    border-radius:100px; font-size:.72rem; font-weight:700; letter-spacing:.06em; margin-bottom:10px;
-  }
-  .mode-badge.edit-mode { background:rgba(255,107,53,.12); border:1px solid rgba(255,107,53,.35); color:var(--accent); }
-  .mode-badge.play-mode { background:rgba(255,215,0,.10); border:1px solid rgba(255,215,0,.3); color:var(--accent2); }
-  .dot { width:6px; height:6px; border-radius:50%; animation:blink 1.2s infinite; }
-  .edit-mode .dot { background:var(--accent); }
-  .play-mode .dot { background:var(--accent2); }
+.controls {
+  display:flex;
+  gap:10px;
+  margin:20px 0;
+  flex-wrap:wrap;
+}
 
-  /* ── SCORE PANEL ── */
-  .score-panel {
-    display:flex; align-items:stretch; gap:10px; margin-bottom:14px;
-    width:min(560px,calc(100vw - 32px));
-    animation:fadeDown .6s .08s ease both;
-  }
-  .score-main {
-    flex:1; background:var(--card); border:1.5px solid rgba(255,215,0,.2);
-    border-radius:16px; padding:14px 18px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  }
-  .score-label { font-size:.68rem; color:var(--muted); font-weight:700; letter-spacing:.08em; }
-  .score-value {
-    font-family:'Black Han Sans',sans-serif; font-size:2.4rem;
-    background:linear-gradient(135deg,var(--accent2),#ffaa00);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-    line-height:1; transition:transform .2s;
-  }
-  .score-value.bump { animation:scoreBump .35s ease; }
-  .score-breakdown {
-    font-size:.68rem; color:var(--muted); margin-top:2px; text-align:center; line-height:1.5;
-  }
+button {
+  padding:10px 18px;
+  border:none;
+  border-radius:999px;
+  background:#ff6b35;
+  color:white;
+  cursor:pointer;
+}
 
-  .score-side {
-    display:flex; flex-direction:column; gap:8px; min-width:130px;
-  }
-  .score-stat {
-    flex:1; background:var(--card); border:1.5px solid rgba(255,255,255,.07);
-    border-radius:12px; padding:10px 14px;
-    display:flex; flex-direction:column; gap:1px;
-  }
-  .stat-label { font-size:.62rem; color:var(--muted); font-weight:700; letter-spacing:.06em; }
-  .stat-value { font-family:'Black Han Sans',sans-serif; font-size:1.3rem; color:var(--text); }
-  .stat-value.accent { color:var(--accent); }
-  .stat-value.gold { color:var(--accent2); }
+.score {
+  margin-bottom:20px;
+  font-size:20px;
+}
 
-  /* ADJUST MODAL trigger */
-  .btn-adjust {
-    width:100%; padding:8px; border-radius:100px;
-    border:1.5px dashed rgba(255,255,255,.15);
-    background:transparent; color:var(--muted); font-size:.75rem; font-weight:700;
-    cursor:pointer; transition:all .2s; font-family:'Noto Sans KR',sans-serif;
-    margin-top:2px;
-  }
-  .btn-adjust:hover { border-color:var(--accent); color:var(--accent); }
+.room-tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
 
-  /* CONTROLS */
-  .controls { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:center; }
-  .btn {
-    padding:9px 20px; border:none; border-radius:100px;
-    font-family:'Noto Sans KR',sans-serif; font-size:.82rem; font-weight:700;
-    cursor:pointer; transition:all .2s; letter-spacing:.02em;
-  }
-  .btn-primary { background:linear-gradient(135deg,var(--accent),#ff8c42); color:#fff; box-shadow:0 3px 16px rgba(255,107,53,.35); }
-  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 5px 24px rgba(255,107,53,.5); }
-  .btn-secondary { background:var(--card); color:var(--text); border:1px solid rgba(255,255,255,.1); }
-  .btn-secondary:hover { border-color:var(--accent); }
-  .btn-danger { background:transparent; color:#ff4466; border:1px solid rgba(255,68,102,.35); }
-  .btn-danger:hover { background:rgba(255,68,102,.1); }
+.room-tab {
+  background:#1a1a2e;
+  padding:8px 14px;
+  border-radius:999px;
+  cursor:pointer;
+}
 
-  /* BOARD */
-  .board-wrapper { animation:fadeUp .6s .15s ease both; position:relative; }
-  .board {
-    display:grid; grid-template-columns:repeat(5,1fr); gap:6px;
-    width:min(560px,calc(100vw - 32px));
-  }
-  .board-lock-overlay {
-    position:absolute; inset:0; background:rgba(10,10,18,.85);
-    border-radius:14px; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:12px;
-    z-index:20; backdrop-filter:blur(6px); animation:fadeIn .3s ease;
-  }
-  .board-lock-overlay .lock-big { font-size:2.8rem; }
-  .board-lock-overlay p { color:var(--muted); font-size:.82rem; }
-  .lock-pw-row { display:flex; gap:8px; align-items:center; }
-  .lock-pw-input {
-    background:var(--card); border:1.5px solid rgba(255,255,255,.12);
-    border-radius:10px; padding:9px 14px; color:var(--text);
-    font-family:'Noto Sans KR',sans-serif; font-size:.9rem;
-    outline:none; width:150px; transition:border-color .2s; letter-spacing:.1em;
-  }
-  .lock-pw-input:focus { border-color:var(--accent); }
-  .lock-pw-input.shake { animation:shake .4s ease; }
-  .cell {
-    aspect-ratio:1; background:var(--card); border:1.5px solid rgba(255,255,255,.07);
-    border-radius:12px; position:relative; cursor:pointer; overflow:hidden;
-    transition:border-color .2s, transform .15s, box-shadow .2s;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .cell:hover { border-color:rgba(255,107,53,.45); transform:scale(1.03); box-shadow:0 4px 14px rgba(255,107,53,.18); }
-  .cell.has-image { cursor:default; }
-  .cell.has-image:hover { transform:scale(1.01); }
-  .cell.marked { border-color:var(--accent); box-shadow:0 0 0 2px rgba(255,107,53,.28),inset 0 0 18px rgba(255,107,53,.1); }
-  .cell.marked::after {
-    content:''; position:absolute; inset:0;
-    background:rgba(255,107,53,.2); border-radius:10px; pointer-events:none;
-  }
-  .cell img { width:100%; height:100%; object-fit:cover; display:block; border-radius:10px; }
-  .cell-placeholder {
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    color:var(--muted); font-size:.62rem; text-align:center; padding:5px;
-    pointer-events:none; user-select:none; width:100%; height:100%;
-  }
-  .cell-num { font-size:.55rem; color:rgba(255,255,255,.2); font-weight:700; line-height:1; align-self:flex-start; margin-left:5px; margin-top:3px; position:absolute; top:4px; left:6px; }
-  .cell-label { font-size:.62rem; color:var(--text); font-weight:700; line-height:1.3; word-break:keep-all; }
-  .cell-add { font-size:1rem; opacity:.35; margin-top:2px; }
-  .check-mark {
-    position:absolute; top:50%; left:50%;
-    transform:translate(-50%,-50%) scale(0);
-    font-size:2.5rem; z-index:10; pointer-events:none;
-    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-    filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));
-  }
-  .cell.marked .check-mark { transform:translate(-50%,-50%) scale(1); }
-  .cell.bingo-line { animation:bingoPulse .7s ease; }
+.room-tab.active {
+  background:#ff6b35;
+}
 
-  /* BINGO TOAST */
-  .bingo-toast {
-    position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px);
-    background:linear-gradient(135deg,#2a1f00,#1f1500);
-    border:1.5px solid rgba(255,215,0,.5);
-    border-radius:100px; padding:12px 28px;
-    display:flex; align-items:center; gap:10px;
-    font-family:'Black Han Sans',sans-serif; font-size:1.1rem;
-    color:var(--accent2); box-shadow:0 8px 32px rgba(0,0,0,.5);
-    z-index:90; transition:transform .4s cubic-bezier(.34,1.56,.64,1), opacity .4s;
-    white-space:nowrap; opacity:0;
-  }
-  .bingo-toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
-
-  /* INSTRUCTIONS */
-  .instructions {
-    margin-top:14px; background:var(--card); border:1px solid rgba(255,255,255,.06);
-    border-radius:14px; padding:14px 18px;
-    width:min(560px,calc(100vw - 32px));
-    font-size:.78rem; color:var(--muted); line-height:1.75;
-    animation:fadeUp .6s .25s ease both;
-  }
-  .instructions strong { color:var(--text); }
-
-  /* MODALS */
-  .modal-overlay {
-    position:fixed; inset:0; background:rgba(0,0,0,.75);
-    display:flex; align-items:center; justify-content:center;
-    z-index:100; opacity:0; pointer-events:none;
-    transition:opacity .3s; backdrop-filter:blur(4px);
-  }
-  .modal-overlay.show { opacity:1; pointer-events:all; }
-  .small-modal {
-    background:var(--surface); border:1px solid rgba(255,255,255,.1);
-    border-radius:20px; padding:28px 32px; max-width:320px; width:90%;
-    transform:scale(.85); transition:transform .35s cubic-bezier(.34,1.56,.64,1);
-    box-shadow:0 0 40px rgba(0,0,0,.5);
-  }
-  .modal-overlay.show .small-modal { transform:scale(1); }
-  .small-modal h3 { font-family:'Black Han Sans',sans-serif; font-size:1.25rem; margin-bottom:6px; color:var(--text); }
-  .small-modal .sub { color:var(--muted); font-size:.78rem; margin-bottom:16px; }
-  .field-label { font-size:.75rem; color:var(--muted); margin-bottom:5px; display:block; font-weight:700; letter-spacing:.05em; }
-  .field-wrap { margin-bottom:14px; }
-  .modal-field {
-    width:100%; background:var(--card); border:1.5px solid rgba(255,255,255,.1);
-    border-radius:10px; padding:10px 14px; color:var(--text);
-    font-family:'Noto Sans KR',sans-serif; font-size:.9rem; outline:none; transition:border-color .2s;
-  }
-  .modal-field:focus { border-color:var(--accent); }
-  .modal-field.has-toggle { padding-right:40px; letter-spacing:.12em; }
-  .field-rel { position:relative; }
-  .toggle-eye {
-    position:absolute; right:12px; top:50%; transform:translateY(-50%);
-    background:none; border:none; cursor:pointer; color:var(--muted); font-size:1rem; padding:0;
-  }
-  .toggle-eye:hover { color:var(--text); }
-  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
-  .modal-error { color:#ff4466; font-size:.75rem; margin-top:-8px; margin-bottom:10px; min-height:1em; }
-  .pw-section { border-top:1px solid rgba(255,255,255,.07); margin-top:4px; padding-top:14px; }
-  .pw-toggle-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-  .pw-toggle-label { font-size:.82rem; color:var(--text); font-weight:700; }
-  .toggle-switch { position:relative; width:38px; height:22px; }
-  .toggle-switch input { opacity:0; width:0; height:0; }
-  .slider { position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,.1); border-radius:22px; transition:.3s; }
-  .slider::before { content:''; position:absolute; width:16px; height:16px; border-radius:50%; left:3px; top:3px; background:var(--muted); transition:.3s; }
-  .toggle-switch input:checked + .slider { background:var(--accent); }
-  .toggle-switch input:checked + .slider::before { transform:translateX(16px); background:#fff; }
-
-  /* SCORE ADJUST MODAL */
-  .adjust-modal {
-    background:var(--surface); border:1px solid rgba(255,255,255,.1);
-    border-radius:20px; padding:28px 28px; max-width:340px; width:92%;
-    transform:scale(.85); transition:transform .35s cubic-bezier(.34,1.56,.64,1);
-    box-shadow:0 0 40px rgba(0,0,0,.5);
-  }
-  .modal-overlay.show .adjust-modal { transform:scale(1); }
-  .adjust-modal h3 { font-family:'Black Han Sans',sans-serif; font-size:1.25rem; margin-bottom:4px; color:var(--text); }
-  .adjust-modal .sub { color:var(--muted); font-size:.78rem; margin-bottom:18px; }
-
-  /* score rule rows */
-  .rule-row {
-    display:flex; align-items:center; justify-content:space-between;
-    background:var(--card); border-radius:12px; padding:12px 16px; margin-bottom:10px;
-  }
-  .rule-info { display:flex; flex-direction:column; gap:2px; }
-  .rule-name { font-size:.82rem; font-weight:700; color:var(--text); }
-  .rule-desc { font-size:.68rem; color:var(--muted); }
-  .stepper { display:flex; align-items:center; gap:8px; }
-  .step-btn {
-    width:30px; height:30px; border-radius:50%; border:1.5px solid rgba(255,255,255,.15);
-    background:var(--surface); color:var(--text); font-size:1.1rem; font-weight:700;
-    cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s;
-    line-height:1;
-  }
-  .step-btn:hover { border-color:var(--accent); color:var(--accent); }
-  .step-val {
-    font-family:'Black Han Sans',sans-serif; font-size:1.2rem; min-width:36px; text-align:center;
-    color:var(--accent2);
-  }
-
-  /* bonus adjust */
-  .bonus-section { margin-top:6px; }
-  .bonus-title { font-size:.72rem; color:var(--muted); font-weight:700; letter-spacing:.07em; margin-bottom:8px; }
-  .bonus-row {
-    display:flex; align-items:center; justify-content:space-between;
-    background:var(--card); border-radius:12px; padding:10px 16px; margin-bottom:8px;
-    border:1px solid rgba(255,255,255,.05);
-  }
-  .bonus-name { font-size:.8rem; color:var(--text); font-weight:700; }
-  .bonus-input {
-    background:transparent; border:none; border-bottom:1.5px solid rgba(255,255,255,.2);
-    color:var(--accent2); font-family:'Black Han Sans',sans-serif; font-size:1rem;
-    width:56px; text-align:center; outline:none; transition:border-color .2s;
-  }
-  .bonus-input:focus { border-color:var(--accent2); }
-
-  /* IMAGE MODAL */
-  .img-modal-overlay {
-    position:fixed; inset:0; background:rgba(0,0,0,.9);
-    display:flex; align-items:center; justify-content:center;
-    z-index:200; opacity:0; pointer-events:none; transition:opacity .2s; cursor:zoom-out;
-  }
-  .img-modal-overlay.show { opacity:1; pointer-events:all; }
-  .img-modal-overlay img { max-width:90vw; max-height:85vh; object-fit:contain; border-radius:14px; box-shadow:0 0 60px rgba(0,0,0,.8); }
-
-  /* CONTEXT MENU */
-  .ctx-menu {
-    position:fixed; background:var(--surface); border:1px solid rgba(255,255,255,.1);
-    border-radius:12px; padding:6px; z-index:300; display:none; flex-direction:column;
-    gap:2px; box-shadow:0 8px 32px rgba(0,0,0,.5); min-width:148px;
-  }
-  .ctx-menu.show { display:flex; }
-  .ctx-item {
-    padding:9px 13px; border-radius:8px; cursor:pointer; font-size:.8rem; color:var(--text);
-    transition:background .15s; display:flex; align-items:center; gap:8px;
-  }
-  .ctx-item:hover { background:rgba(255,255,255,.07); }
-  .ctx-item.danger { color:#ff4466; }
-  .ctx-item.danger:hover { background:rgba(255,68,102,.1); }
-
-  .file-input { display:none; }
-  .confetti-container { position:fixed; inset:0; pointer-events:none; z-index:50; }
-  .confetti-piece { position:absolute; top:-10px; animation:confettiFall linear forwards; }
-
-  /* ── MAIN SCREEN ── */
-  .main-screen {
-    position:fixed; inset:0; background:var(--bg); z-index:500;
-    display:flex; align-items:center; justify-content:center;
-    transition:opacity .5s, visibility .5s;
-  }
-  .main-screen.hide { opacity:0; visibility:hidden; pointer-events:none; }
-  .main-content {
-    text-align:center; max-width:500px; padding:20px;
-    animation:mainFadeIn 1s ease both;
-  }
-  .main-title {
-    font-family:'Black Han Sans',sans-serif;
-    font-size:clamp(2.5rem,8vw,4rem);
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-    filter:drop-shadow(0 0 24px rgba(255,107,53,.6));
-    margin-bottom:16px; line-height:1.2; letter-spacing:.02em;
-  }
-  .main-subtitle {
-    font-size:1rem; color:var(--muted); margin-bottom:12px; line-height:1.6;
-  }
-  .main-desc {
-    font-size:.85rem; color:var(--muted); margin-bottom:36px;
-    line-height:1.7; opacity:.8;
-  }
-  .btn-start {
-    display:inline-flex; align-items:center; gap:10px;
-    padding:16px 40px; border-radius:100px; border:none;
-    background:linear-gradient(135deg,var(--accent),#ff8c42);
-    color:#fff; font-family:'Noto Sans KR',sans-serif;
-    font-size:1.1rem; font-weight:700; cursor:pointer;
-    box-shadow:0 8px 32px rgba(255,107,53,.45);
-    transition:all .3s; letter-spacing:.04em;
-  }
-  .btn-start:hover {
-    transform:translateY(-4px);
-    box-shadow:0 12px 40px rgba(255,107,53,.6);
-  }
-  .btn-start:active { transform:translateY(-2px); }
-  .main-features {
-    margin-top:48px; display:flex; flex-direction:column; gap:14px;
-  }
-  .feature {
-    display:flex; align-items:center; gap:12px;
-    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
-    border-radius:16px; padding:14px 18px; text-align:left;
-  }
-  .feature-icon { font-size:1.8rem; flex-shrink:0; }
-  .feature-text { flex:1; }
-  .feature-title { font-size:.82rem; font-weight:700; color:var(--text); margin-bottom:2px; }
-  .feature-desc { font-size:.72rem; color:var(--muted); line-height:1.4; }
-  @keyframes mainFadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-
-  /* KEYFRAMES */
-  @keyframes fadeDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes fadeUp   { from{opacity:0;transform:translateY(14px)}  to{opacity:1;transform:translateY(0)} }
-  @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
-  @keyframes popIn    { 0%{transform:scale(.5)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
-  @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.3} }
-  @keyframes bingoPulse {
-    0%{box-shadow:0 0 0 rgba(255,215,0,0)}
-    50%{box-shadow:0 0 0 4px rgba(255,215,0,.7),inset 0 0 28px rgba(255,215,0,.18)}
-    100%{box-shadow:0 0 0 rgba(255,215,0,0)}
-  }
-  @keyframes confettiFall { to{transform:translateY(110vh) rotate(720deg);opacity:0} }
-  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
-  @keyframes scoreBump { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
-  @keyframes spinIn   { from{transform:rotate(-20deg) scale(.5)} to{transform:rotate(0deg) scale(1)} }
+#ranking {
+  margin-top:20px;
+}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>추억 수집 BANGO!</h1>
-  <p>매일 매일 완료한 미션에 사진을 채워 빙고를 완성하세요!</p>
-</header>
+<h1>🎯 BANGO! Multiplayer</h1>
 
-<!-- ROOM TABS -->
-<div class="room-bar">
-  <div class="room-tabs" id="roomTabs"></div>
-  <button class="btn-add-room" id="addRoomBtn">＋ 방 추가</button>
+<div>
+👤 <span id="nicknameView"></span><br>
+🟢 접속자: <span id="onlineUsers">0</span>명
 </div>
 
-<!-- ROOM HEADER -->
-<div class="room-header">
-  <input class="room-name-input" id="roomNameInput" placeholder="방 이름..." maxlength="20" />
-  <button class="btn-icon" id="pwSettingBtn">🔒 비밀번호</button>
+<div class="score">
+총 점수: <span id="score">0</span>
 </div>
 
-<!-- SCORE PANEL -->
-<div class="score-panel" id="scorePanel">
-  <div class="score-main">
-    <div class="score-label">총 점수</div>
-    <div class="score-value" id="scoreValue">0</div>
-    <div class="score-breakdown" id="scoreBreakdown">사진 0개 · 빙고 0줄</div>
-  </div>
-  <div class="score-side">
-    <div class="score-stat">
-      <div class="stat-label">📷 사진 칸</div>
-      <div class="stat-value accent" id="statCells">0</div>
-    </div>
-    <div class="score-stat">
-      <div class="stat-label">🎯 빙고 줄</div>
-      <div class="stat-value gold" id="statBingos">0</div>
-    </div>
-    <button class="btn-adjust" id="openAdjustBtn">⚙ 점수 설정</button>
-  </div>
-</div>
+<div class="room-tabs" id="roomTabs"></div>
 
-<!-- CONTROLS -->
 <div class="controls">
-
+  <button id="addRoomBtn">🏠 방 추가</button>
+  <button id="backupBtn">💾 백업</button>
+  <button id="restoreBtn">📂 복원</button>
+  <button id="installBtn">📱 앱 설치</button>
 </div>
 
-<!-- BOARD -->
-<div class="board-wrapper">
-  <div class="board" id="board"></div>
-</div>
+<div class="board" id="board"></div>
 
-<!-- INSTRUCTIONS -->
-<div class="instructions">
-  <strong>점수 계산</strong>: 사진 1장당 <strong>2점</strong> · 빙고 1줄당 <strong>+5점</strong> (설정에서 변경 가능)<br>
-  <strong>사용 방법</strong>: ① 방 추가 → ② 빈 칸 클릭으로 사진 업로드 → ③ 자동으로 점수 반영
-</div>
+<div id="ranking"></div>
 
-<!-- ── MODALS ── -->
-
-<!-- Add Room -->
-<div class="modal-overlay" id="addRoomModal">
-  <div class="small-modal">
-    <h3>🏠 방 추가</h3>
-    <p class="sub">방 이름과 비밀번호를 설정하세요</p>
-    <div class="field-wrap">
-      <label class="field-label">방 이름</label>
-      <input class="modal-field" id="newRoomName" placeholder="예: 1반, 2반, 우리팀..." maxlength="20" />
-    </div>
-    <div class="pw-section">
-      <div class="pw-toggle-row">
-        <span class="pw-toggle-label">🔒 비밀번호 설정</span>
-        <label class="toggle-switch"><input type="checkbox" id="newRoomPwToggle"><span class="slider"></span></label>
-      </div>
-      <div id="newRoomPwFields" style="display:none">
-        <div class="field-wrap">
-          <label class="field-label">비밀번호</label>
-          <div class="field-rel">
-            <input class="modal-field has-toggle" type="password" id="newRoomPw" placeholder="비밀번호 입력" maxlength="20" />
-            <button class="toggle-eye" onclick="toggleEye('newRoomPw',this)">👁</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-actions" style="margin-top:18px">
-      <button class="btn btn-secondary" onclick="closeModal('addRoomModal')" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmAddRoom" style="padding:8px 16px">만들기</button>
-    </div>
-  </div>
-</div>
-
-<!-- PW Setting -->
-<div class="modal-overlay" id="pwSettingModal">
-  <div class="small-modal">
-    <h3>🔐 비밀번호 설정</h3>
-    <p class="sub" id="pwSettingRoomName"></p>
-    <div class="pw-section" style="border:none;padding:0;margin:0">
-      <div class="pw-toggle-row">
-        <span class="pw-toggle-label">비밀번호 사용</span>
-        <label class="toggle-switch"><input type="checkbox" id="existingPwToggle"><span class="slider"></span></label>
-      </div>
-      <div id="existingPwFields">
-        <div class="field-wrap">
-          <label class="field-label">새 비밀번호</label>
-          <div class="field-rel">
-            <input class="modal-field has-toggle" type="password" id="existingPw" placeholder="비밀번호 입력" maxlength="20" />
-            <button class="toggle-eye" onclick="toggleEye('existingPw',this)">👁</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-actions" style="margin-top:18px">
-      <button class="btn btn-secondary" onclick="closeModal('pwSettingModal')" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmPwSetting" style="padding:8px 16px">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- Unlock -->
-<div class="modal-overlay" id="unlockModal">
-  <div class="small-modal">
-    <h3>🔒 잠긴 방</h3>
-    <p class="sub" id="unlockRoomLabel"></p>
-    <div class="field-wrap">
-      <label class="field-label">비밀번호</label>
-      <div class="field-rel">
-        <input class="modal-field has-toggle" type="password" id="unlockPwInput" placeholder="비밀번호를 입력하세요" maxlength="20" />
-        <button class="toggle-eye" onclick="toggleEye('unlockPwInput',this)">👁</button>
-      </div>
-    </div>
-    <div class="modal-error" id="unlockError"></div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="cancelUnlock()" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmUnlock" style="padding:8px 16px">확인</button>
-    </div>
-  </div>
-</div>
-
-<!-- Score Adjust Modal -->
-<div class="modal-overlay" id="adjustModal">
-  <div class="adjust-modal">
-    <h3>⚙ 점수 설정</h3>
-    <p class="sub">점수 규칙을 원하는 대로 조정하세요</p>
-
-    <div class="rule-row">
-      <div class="rule-info">
-        <div class="rule-name">📷 사진당 점수</div>
-        <div class="rule-desc">사진 1장 업로드당 획득</div>
-      </div>
-      <div class="stepper">
-        <button class="step-btn" onclick="stepRule('cellPts',-1)">−</button>
-        <div class="step-val" id="stepCellPts">2</div>
-        <button class="step-btn" onclick="stepRule('cellPts',1)">＋</button>
-      </div>
-    </div>
-
-    <div class="rule-row">
-      <div class="rule-info">
-        <div class="rule-name">🎯 빙고 보너스</div>
-        <div class="rule-desc">빙고 1줄 완성당 추가</div>
-      </div>
-      <div class="stepper">
-        <button class="step-btn" onclick="stepRule('bingoPts',-1)">−</button>
-        <div class="step-val" id="stepBingoPts">5</div>
-        <button class="step-btn" onclick="stepRule('bingoPts',1)">＋</button>
-      </div>
-    </div>
-
-    <div class="bonus-section">
-      <div class="bonus-title">🎁 추가 보너스 점수 (수동 입력)</div>
-      <div class="bonus-row">
-        <div class="bonus-name">보너스 점수</div>
-        <input class="bonus-input" type="number" id="bonusInput" value="0" min="-999" max="9999" />
-      </div>
-      <div class="bonus-row" style="border-color:rgba(255,215,0,.15)">
-        <div class="bonus-name" style="color:var(--accent2)">📊 현재 총점 미리보기</div>
-        <div id="previewScore" style="font-family:'Black Han Sans',sans-serif;font-size:1.1rem;color:var(--accent2)">0</div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:18px">
-      <button class="btn btn-secondary" onclick="closeModal('adjustModal')" style="padding:8px 16px">취소</button>
-      <button class="btn btn-primary" id="confirmAdjust" style="padding:8px 16px">적용</button>
-    </div>
-  </div>
-</div>
-
-<!-- Image preview -->
-<div class="img-modal-overlay" id="imgModal" onclick="closeImgModal()">
-  <img id="imgModalSrc" src="" alt="">
-</div>
-
-<!-- Context Menu -->
-<div class="ctx-menu" id="ctxMenu">
-  <div class="ctx-item" id="ctxView">👁 크게 보기</div>
-  <div class="ctx-item danger" id="ctxDelete">🗑 사진 삭제</div>
-</div>
-
-<!-- Bingo Toast -->
-<div class="bingo-toast" id="bingoToast">🎯 <span id="bingoToastMsg">빙고!</span></div>
-
-<div class="confetti-container" id="confettiContainer"></div>
-<input type="file" class="file-input" id="fileInput" accept="image/*">
+<input type="file" id="fileInput" accept="image/*" hidden>
+<input type="file" id="restoreInput" accept=".json" hidden>
 
 <script>
-// ══════════════════════════════════
-//  GLOBAL SCORE RULES (shared across rooms, adjustable)
-// ══════════════════════════════════
-let rules = { cellPts: 2, bingoPts: 5 };
-// temp rules while modal is open
-let tempRules = { cellPts: 2, bingoPts: 5 };
 
-// ══════════════════════════════════
-//  STATE
-// ══════════════════════════════════
-const BINGO_LABELS = ["거울샷", "담임선생님과 함께", "우리들의 야식샷", "파워레인저샷", "그림자샷", "별 손가락 샷", "스누피와 함께", "축소샷", "남학생 공항룩", "비행기샷", "헬멧착용샷", "여학생 공항룩", "단체샷", "2만보 인증샷", "리더의 무게샷", "입 들어가샷", "해양생물과 함께", "별모양포즈", "기념품 플렉스샷", "오설록에서 지정된 포즈", "바퀴벌레샷", "남녀학생 함께", "끌려다니기 샷", "하트샷", "돌하르방샷"];
+// =============================
+// CONFIG
+// =============================
 
-function makeRoom(name, password) {
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+// =============================
+// STATE
+// =============================
+
+const STORAGE_KEY = 'bango_save_v1';
+
+const LABELS = [
+"거울샷","담임선생님과 함께","우리들의 야식샷","파워레인저샷","그림자샷",
+"별 손가락 샷","스누피와 함께","축소샷","남학생 공항룩","비행기샷",
+"헬멧착용샷","여학생 공항룩","단체샷","2만보 인증샷","리더의 무게샷",
+"입 들어가샷","해양생물과 함께","별모양포즈","기념품 플렉스샷","오설록 포즈",
+"바퀴벌레샷","남녀학생 함께","끌려다니기 샷","하트샷","돌하르방샷"
+];
+
+let roomId =
+  location.hash.replace('#','') ||
+  Math.random().toString(36).substring(2,8);
+
+location.hash = roomId;
+
+let nickname =
+  localStorage.getItem('bango_nickname') ||
+  prompt('닉네임 입력') ||
+  '익명';
+
+localStorage.setItem('bango_nickname', nickname);
+
+let currentUserId =
+  Math.random().toString(36).substring(2,10);
+
+let rules = {
+  cellPts: 2,
+  bingoPts: 5
+};
+
+function makeRoom(name) {
   return {
-    name, password: password || '', unlocked: true,
-    cells: Array.from({length:25}, (_, i) => ({image:null, label:BINGO_LABELS[i]||''})),
-    mode: 'edit',
-    bingoLines: 0,        // completed line count
-    announcedBingos: new Set(),
-    bonusPts: 0           // manual bonus
+    name,
+    bonusPts:0,
+    bingoLines:0,
+    announcedBingos:[],
+    cells:Array.from({length:25}, (_,i)=>(
+      {
+        image:null,
+        label:LABELS[i]
+      }
+    ))
   };
 }
+
 let rooms = [makeRoom('1반')];
 let currentRoomIdx = 0;
-function room() { return rooms[currentRoomIdx]; }
-let pendingUnlockIdx = null;
 
-// ══════════════════════════════════
-//  DOM
-// ══════════════════════════════════
-const board        = document.getElementById('board');
-const fileInput    = document.getElementById('fileInput');
-const ctxMenu      = document.getElementById('ctxMenu');
-const roomTabs     = document.getElementById('roomTabs');
-const roomNameInput= document.getElementById('roomNameInput');
-const pwSettingBtn = document.getElementById('pwSettingBtn');
-
-let pendingCell=null, ctxCell=null;
-
-// ══════════════════════════════════
-//  SCORE CALCULATION
-// ══════════════════════════════════
-function calcScore(r, overrideRules) {
-  const R = overrideRules || rules;
-  const filled = r.cells.filter(c => c.image).length;
-  return filled * R.cellPts + r.bingoLines * R.bingoPts + r.bonusPts;
+function room() {
+  return rooms[currentRoomIdx];
 }
 
-function updateScoreUI() {
-  const r = room();
-  const filled = r.cells.filter(c => c.image).length;
-  const score = calcScore(r);
+let pendingCell = null;
 
-  const sv = document.getElementById('scoreValue');
-  const oldScore = parseInt(sv.dataset.prev||'0');
-  sv.textContent = score;
-  sv.dataset.prev = score;
-  if (score !== oldScore) { sv.classList.remove('bump'); void sv.offsetWidth; sv.classList.add('bump'); }
+// =============================
+// DOM
+// =============================
 
-  document.getElementById('scoreBreakdown').textContent = `사진 ${filled}개 · 빙고 ${r.bingoLines}줄${r.bonusPts ? ` · 보너스 ${r.bonusPts>0?'+':''}${r.bonusPts}` : ''}`;
-  document.getElementById('statCells').textContent = filled;
-  document.getElementById('statBingos').textContent = r.bingoLines;
+const board = document.getElementById('board');
+const fileInput = document.getElementById('fileInput');
+
+// =============================
+// SAVE
+// =============================
+
+function saveData() {
+
+  const data = {
+    rooms,
+    rules,
+    currentRoomIdx
+  };
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(data)
+  );
+
+  syncToCloud();
 }
 
-// ══════════════════════════════════
-//  SCORE ADJUST MODAL
-// ══════════════════════════════════
-document.getElementById('openAdjustBtn').addEventListener('click', () => {
-  tempRules = { ...rules };
-  document.getElementById('stepCellPts').textContent  = tempRules.cellPts;
-  document.getElementById('stepBingoPts').textContent = tempRules.bingoPts;
-  document.getElementById('bonusInput').value = room().bonusPts;
-  updatePreview();
-  openModal('adjustModal');
-});
+function loadData() {
 
-function stepRule(key, delta) {
-  tempRules[key] = Math.max(0, (tempRules[key] || 0) + delta);
-  document.getElementById(key==='cellPts' ? 'stepCellPts' : 'stepBingoPts').textContent = tempRules[key];
-  updatePreview();
-}
+  const raw = localStorage.getItem(STORAGE_KEY);
 
-document.getElementById('bonusInput').addEventListener('input', updatePreview);
+  if (!raw) return;
 
-function updatePreview() {
-  const bonus = parseInt(document.getElementById('bonusInput').value) || 0;
-  const r = room();
-  const filled = r.cells.filter(c => c.image).length;
-  const preview = filled * tempRules.cellPts + r.bingoLines * tempRules.bingoPts + bonus;
-  document.getElementById('previewScore').textContent = preview;
-}
+  try {
 
-document.getElementById('confirmAdjust').addEventListener('click', () => {
-  rules = { ...tempRules };
-  room().bonusPts = parseInt(document.getElementById('bonusInput').value) || 0;
-  closeModal('adjustModal');
-  updateScoreUI();
-});
+    const data = JSON.parse(raw);
 
-// ══════════════════════════════════
-//  ROOM TABS
-// ══════════════════════════════════
-function renderRoomTabs() {
-  roomTabs.innerHTML = '';
-  rooms.forEach((r, i) => {
-    const tab = document.createElement('div');
-    tab.className = 'room-tab' + (i===currentRoomIdx ? ' active' : '');
-    if (r.password) {
-      const lk = document.createElement('span');
-      lk.className='lock-icon'; lk.textContent=r.unlocked?'🔓':'🔒';
-      tab.appendChild(lk);
-    }
-    const ns = document.createElement('span');
-    ns.textContent = r.name;
-    ns.addEventListener('click', () => trySwitch(i));
-    const del = document.createElement('span');
-    del.className='room-del'; del.textContent='✕';
-    del.addEventListener('click', e => { e.stopPropagation(); deleteRoom(i); });
-    tab.appendChild(ns); tab.appendChild(del);
-    roomTabs.appendChild(tab);
-  });
-  roomNameInput.value = room().name;
-  pwSettingBtn.className = 'btn-icon' + (room().password ? ' has-pw' : '');
-  pwSettingBtn.textContent = room().password ? '🔐 비밀번호 변경' : '🔒 비밀번호 설정';
-}
+    rooms = data.rooms || rooms;
+    rules = data.rules || rules;
+    currentRoomIdx = data.currentRoomIdx || 0;
 
-function trySwitch(i) {
-  const t = rooms[i];
-  if (t.password && !t.unlocked) {
-    pendingUnlockIdx = i;
-    document.getElementById('unlockRoomLabel').textContent = '"'+t.name+'" 방은 잠겨 있어요';
-    document.getElementById('unlockPwInput').value='';
-    document.getElementById('unlockError').textContent='';
-    openModal('unlockModal');
-    setTimeout(()=>document.getElementById('unlockPwInput').focus(),200);
-  } else { switchRoom(i); }
-}
-function switchRoom(i) {
-  currentRoomIdx = i;
-  renderRoomTabs(); renderBoard(); updateScoreUI();
-}
-function deleteRoom(i) {
-  if (rooms.length===1) { alert('마지막 방은 삭제할 수 없어요!'); return; }
-  if (!confirm('"'+rooms[i].name+'" 방을 삭제할까요?')) return;
-  rooms.splice(i,1);
-  if (currentRoomIdx>=rooms.length) currentRoomIdx=rooms.length-1;
-  renderRoomTabs(); renderBoard(); updateScoreUI();
-}
-
-roomNameInput.addEventListener('input', () => { room().name=roomNameInput.value||'방'; renderRoomTabs(); });
-
-// ── ADD ROOM ──
-document.getElementById('addRoomBtn').addEventListener('click', () => {
-  document.getElementById('newRoomName').value='';
-  document.getElementById('newRoomPw').value='';
-  document.getElementById('newRoomPwToggle').checked=false;
-  document.getElementById('newRoomPwFields').style.display='none';
-  openModal('addRoomModal');
-  setTimeout(()=>document.getElementById('newRoomName').focus(),200);
-});
-document.getElementById('newRoomPwToggle').addEventListener('change', function(){
-  document.getElementById('newRoomPwFields').style.display=this.checked?'block':'none';
-});
-document.getElementById('newRoomName').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAddRoom();});
-document.getElementById('confirmAddRoom').addEventListener('click',confirmAddRoom);
-function confirmAddRoom(){
-  const name=document.getElementById('newRoomName').value.trim()||(rooms.length+1)+'반';
-  const usePw=document.getElementById('newRoomPwToggle').checked;
-  const pw=usePw?document.getElementById('newRoomPw').value:'';
-  rooms.push(makeRoom(name,pw));
-  currentRoomIdx=rooms.length-1;
-  closeModal('addRoomModal');
-  renderRoomTabs(); renderBoard(); updateScoreUI();
-}
-
-// ── PW SETTING ──
-pwSettingBtn.addEventListener('click', ()=>{
-  const r=room();
-  document.getElementById('pwSettingRoomName').textContent='"'+r.name+'" 방의 비밀번호';
-  document.getElementById('existingPwToggle').checked=!!r.password;
-  document.getElementById('existingPwFields').style.display=r.password?'block':'none';
-  document.getElementById('existingPw').value='';
-  openModal('pwSettingModal');
-  setTimeout(()=>document.getElementById('existingPw').focus(),200);
-});
-document.getElementById('existingPwToggle').addEventListener('change',function(){
-  document.getElementById('existingPwFields').style.display=this.checked?'block':'none';
-});
-document.getElementById('confirmPwSetting').addEventListener('click',()=>{
-  const r=room();
-  const usePw=document.getElementById('existingPwToggle').checked;
-  r.password=usePw?document.getElementById('existingPw').value:'';
-  r.unlocked=true;
-  closeModal('pwSettingModal'); renderRoomTabs();
-});
-
-// ── UNLOCK ──
-document.getElementById('unlockPwInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmUnlock();});
-document.getElementById('confirmUnlock').addEventListener('click',confirmUnlock);
-function confirmUnlock(){
-  if(pendingUnlockIdx===null)return;
-  const t=rooms[pendingUnlockIdx];
-  const input=document.getElementById('unlockPwInput').value;
-  if(input===t.password){
-    t.unlocked=true; closeModal('unlockModal'); switchRoom(pendingUnlockIdx); pendingUnlockIdx=null;
-  } else {
-    const f=document.getElementById('unlockPwInput');
-    document.getElementById('unlockError').textContent='비밀번호가 틀렸어요 🔒';
-    f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake'); f.value='';
+  } catch(e) {
+    console.error(e);
   }
 }
-function cancelUnlock(){ pendingUnlockIdx=null; closeModal('unlockModal'); }
 
-// ══════════════════════════════════
-//  BOARD
-// ══════════════════════════════════
-function renderBoard(){
-  board.innerHTML='';
-  const r=room();
-  // remove old overlay
-  const old=board.parentElement.querySelector('.board-lock-overlay');
-  if(old)old.remove();
+// =============================
+// CLOUD
+// =============================
 
-  if(r.password&&!r.unlocked){
-    board.innerHTML='<div class="cell" style="opacity:.12"></div>'.repeat(25);
-    const ov=document.createElement('div');
-    ov.className='board-lock-overlay';
-    ov.innerHTML=`<div class="lock-big">🔒</div><p>"${r.name}" 방은 잠겨 있어요</p>
-      <div class="lock-pw-row">
-        <input class="lock-pw-input" type="password" id="inlinePwInput" placeholder="비밀번호..." maxlength="20"/>
-        <button class="btn btn-primary" id="inlineUnlockBtn" style="padding:9px 16px">확인</button>
-      </div><div class="modal-error" id="inlineError"></div>`;
-    board.parentElement.appendChild(ov);
-    document.getElementById('inlinePwInput').addEventListener('keydown',e=>{if(e.key==='Enter')inlineUnlock();});
-    document.getElementById('inlineUnlockBtn').addEventListener('click',inlineUnlock);
-    return;
-  }
+async function syncToCloud() {
 
-  r.cells.forEach((cell,i)=>{
-    const el=document.createElement('div');
-    el.className='cell';
-    if(cell.image){
-      el.classList.add('has-image');
-      const img=document.createElement('img'); img.src=cell.image; img.draggable=false;
-      el.appendChild(img);
-      el.addEventListener('contextmenu',e=>{e.preventDefault();showCtxMenu(e,i);});
+  await supabaseClient
+    .from('bango_rooms')
+    .upsert({
+      id: roomId,
+      data: {
+        rooms,
+        rules,
+        currentRoomIdx
+      },
+      updated_at:new Date()
+    });
+}
+
+async function loadCloud() {
+
+  const { data } = await supabaseClient
+    .from('bango_rooms')
+    .select('*')
+    .eq('id', roomId)
+    .single();
+
+  if (!data) return;
+
+  rooms = data.data.rooms || rooms;
+  rules = data.data.rules || rules;
+  currentRoomIdx = data.data.currentRoomIdx || 0;
+}
+
+function listenRealtime() {
+
+  supabaseClient
+    .channel('bango-sync')
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'bango_rooms',
+        filter:`id=eq.${roomId}`
+      },
+      payload => {
+
+        const cloud = payload.new.data;
+
+        rooms = cloud.rooms;
+        rules = cloud.rules;
+        currentRoomIdx = cloud.currentRoomIdx;
+
+        renderAll();
+      }
+    )
+    .subscribe();
+}
+
+// =============================
+// STORAGE IMAGE
+// =============================
+
+async function uploadImage(file) {
+
+  const path = `${roomId}/${Date.now()}_${file.name}`;
+
+  await supabaseClient
+    .storage
+    .from('bango-images')
+    .upload(path, file);
+
+  const { data } = supabaseClient
+    .storage
+    .from('bango-images')
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
+// =============================
+// BOARD
+// =============================
+
+function renderBoard() {
+
+  board.innerHTML = '';
+
+  room().cells.forEach((cell, i) => {
+
+    const div = document.createElement('div');
+
+    div.className = 'cell';
+
+    if (cell.image) {
+
+      const img = document.createElement('img');
+      img.src = cell.image;
+      div.appendChild(img);
+
     } else {
-      const ph=document.createElement('div'); ph.className='cell-placeholder';
-      ph.innerHTML='<div class="cell-num">'+(i+1)+'</div><div class="cell-label">'+cell.label+'</div><div class="cell-add">📷</div>';
-      el.appendChild(ph);
+
+      div.innerHTML = `<div>${cell.label}</div>`;
     }
-    el.addEventListener('click',()=>handleCellClick(i));
-    board.appendChild(el);
+
+    div.addEventListener('click', () => {
+
+      pendingCell = i;
+      fileInput.click();
+    });
+
+    board.appendChild(div);
   });
 }
 
-function inlineUnlock(){
-  const r=room();
-  const inp=document.getElementById('inlinePwInput');
-  const err=document.getElementById('inlineError');
-  if(inp.value===r.password){ r.unlocked=true; renderBoard(); renderRoomTabs(); updateScoreUI(); }
-  else{ err.textContent='비밀번호가 틀렸어요 🔒'; inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); inp.value=''; }
+// =============================
+// ROOMS
+// =============================
+
+function renderRooms() {
+
+  const tabs = document.getElementById('roomTabs');
+
+  tabs.innerHTML = '';
+
+  rooms.forEach((r,i)=>{
+
+    const tab = document.createElement('div');
+
+    tab.className =
+      'room-tab' +
+      (i===currentRoomIdx ? ' active' : '');
+
+    tab.textContent = r.name;
+
+    tab.addEventListener('click', ()=>{
+      currentRoomIdx = i;
+      renderAll();
+      saveData();
+    });
+
+    tabs.appendChild(tab);
+  });
 }
 
-// ══════════════════════════════════
-//  CELL CLICK
-// ══════════════════════════════════
-function handleCellClick(i){
-  const cell=room().cells[i];
-  if(!cell.image){ pendingCell=i; fileInput.click(); }
+// =============================
+// SCORE
+// =============================
+
+function calcScore(r) {
+
+  const filled =
+    r.cells.filter(c=>c.image).length;
+
+  return (
+    filled * rules.cellPts +
+    r.bingoLines * rules.bingoPts +
+    r.bonusPts
+  );
 }
 
-fileInput.addEventListener('change',e=>{
-  const file=e.target.files[0]; if(!file||pendingCell===null)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{room().cells[pendingCell].image=ev.target.result;pendingCell=null;renderBoard();checkBingo();updateScoreUI();};
-  reader.readAsDataURL(file); fileInput.value='';
-});
+function updateScore() {
 
-// ══════════════════════════════════
-//  CONTEXT MENU
-// ══════════════════════════════════
-function showCtxMenu(e,i){
-  ctxCell=i;
-  ctxMenu.style.left=Math.min(e.clientX,window.innerWidth-170)+'px';
-  ctxMenu.style.top=Math.min(e.clientY,window.innerHeight-90)+'px';
-  ctxMenu.classList.add('show'); e.stopPropagation();
+  document.getElementById('score').textContent =
+    calcScore(room());
 }
-document.getElementById('ctxView').addEventListener('click',()=>{
-  if(ctxCell!==null&&room().cells[ctxCell].image){
-    document.getElementById('imgModalSrc').src=room().cells[ctxCell].image;
-    document.getElementById('imgModal').classList.add('show');
+
+// =============================
+// BINGO
+// =============================
+
+const bingoSound = new Audio(
+'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3'
+);
+
+function getLines() {
+
+  const lines = [];
+
+  for(let r=0;r<5;r++) {
+    lines.push([r*5,r*5+1,r*5+2,r*5+3,r*5+4]);
   }
-  ctxMenu.classList.remove('show');
-});
-document.getElementById('ctxDelete').addEventListener('click',()=>{
-  if(ctxCell!==null){room().cells[ctxCell].image=null;renderBoard();checkBingo();updateScoreUI();}
-  ctxMenu.classList.remove('show'); ctxCell=null;
-});
-document.addEventListener('click',()=>ctxMenu.classList.remove('show'));
 
-// ══════════════════════════════════
-//  BINGO CHECK (no win modal — only toast + confetti)
-// ══════════════════════════════════
-let toastTimer=null;
-function getLines(){
-  const lines=[];
-  for(let r=0;r<5;r++) lines.push([r*5,r*5+1,r*5+2,r*5+3,r*5+4]);
-  for(let c=0;c<5;c++) lines.push([c,c+5,c+10,c+15,c+20]);
-  lines.push([0,6,12,18,24]); lines.push([4,8,12,16,20]);
+  for(let c=0;c<5;c++) {
+    lines.push([c,c+5,c+10,c+15,c+20]);
+  }
+
+  lines.push([0,6,12,18,24]);
+  lines.push([4,8,12,16,20]);
+
   return lines;
 }
 
-function checkBingo(){
-  const r=room(); const lines=getLines();
-  const currentCompleted=new Set();
-  const completedIdx=new Set();
+function checkBingo() {
 
-  lines.forEach((line,li)=>{
-    if(line.every(i=>r.cells[i].image)){
-      currentCompleted.add(li);
-      line.forEach(i=>completedIdx.add(i));
+  const lines = getLines();
+
+  let count = 0;
+
+  lines.forEach(line=>{
+
+    if(line.every(i=>room().cells[i].image)) {
+      count++;
     }
   });
 
-  const newBingos=[];
-  currentCompleted.forEach(li=>{ if(!r.announcedBingos.has(li)) newBingos.push(li); });
-
-  r.announcedBingos=currentCompleted;
-  r.bingoLines=currentCompleted.size;
-
-  board.querySelectorAll('.cell').forEach((el,i)=>{
-    el.classList.remove('bingo-line');
-    if(completedIdx.has(i))setTimeout(()=>el.classList.add('bingo-line'),50);
-  });
-
-  if(newBingos.length>0){
-    showBingoToast(r.bingoLines);
-    launchConfetti();
+  if (count > room().bingoLines) {
+    bingoSound.play();
+    alert('🎯 빙고!');
   }
+
+  room().bingoLines = count;
 }
 
-function showBingoToast(count){
-  const msgs=['🎯 빙고!','🎯 2번째 빙고!','🌟 3번째 빙고!','💥 4번째 빙고!','🏆 풀 빙고!!'];
-  const toast=document.getElementById('bingoToast');
-  document.getElementById('bingoToastMsg').textContent=msgs[Math.min(count-1,4)]+' (+'+rules.bingoPts+'점)';
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>toast.classList.remove('show'),2800);
-}
+// =============================
+// FILE
+// =============================
 
-// ══════════════════════════════════
-//  MODALS
-// ══════════════════════════════════
-function openModal(id){ document.getElementById(id).classList.add('show'); }
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-function closeImgModal(){ document.getElementById('imgModal').classList.remove('show'); }
+fileInput.addEventListener('change', async e => {
 
-['addRoomModal','pwSettingModal','unlockModal','adjustModal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',e=>{
-    if(e.target===document.getElementById(id)){
-      if(id==='unlockModal')cancelUnlock(); else closeModal(id);
-    }
-  });
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const imageUrl = await uploadImage(file);
+
+  room().cells[pendingCell].image = imageUrl;
+
+  checkBingo();
+
+  renderAll();
+
+  saveData();
 });
 
-function toggleEye(fieldId,btn){
-  const f=document.getElementById(fieldId);
-  if(f.type==='password'){f.type='text';btn.textContent='🙈';}
-  else{f.type='password';btn.textContent='👁';}
+// =============================
+// ADD ROOM
+// =============================
+
+document
+  .getElementById('addRoomBtn')
+  .addEventListener('click', ()=>{
+
+    const name = prompt('방 이름');
+
+    if (!name) return;
+
+    rooms.push(makeRoom(name));
+
+    renderAll();
+
+    saveData();
+  });
+
+// =============================
+// BACKUP
+// =============================
+
+function makeBackupData() {
+
+  return {
+    rooms,
+    rules,
+    currentRoomIdx,
+    savedAt:new Date()
+  };
 }
 
-// ══════════════════════════════════
-//  CONFETTI
-// ══════════════════════════════════
-function launchConfetti(){
-  const container=document.getElementById('confettiContainer');
-  const colors=['#ff6b35','#ffd700','#ff4499','#44ffaa','#4499ff','#ff44dd','#fff'];
-  for(let i=0;i<60;i++){
-    const p=document.createElement('div'); p.className='confetti-piece';
-    p.style.left=Math.random()*100+'vw';
-    p.style.background=colors[Math.floor(Math.random()*colors.length)];
-    p.style.borderRadius=Math.random()>.5?'50%':'2px';
-    p.style.width=(Math.random()*10+6)+'px'; p.style.height=p.style.width;
-    p.style.animationDuration=(Math.random()*2+1.5)+'s';
-    p.style.animationDelay=Math.random()*.6+'s';
-    container.appendChild(p); setTimeout(()=>p.remove(),3500);
+
+document
+  .getElementById('backupBtn')
+  .addEventListener('click', ()=>{
+
+    const blob = new Blob(
+      [JSON.stringify(makeBackupData())],
+      {type:'application/json'}
+    );
+
+    const a = document.createElement('a');
+
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bango_backup.json';
+
+    a.click();
+  });
+
+
+document
+  .getElementById('restoreBtn')
+  .addEventListener('click', ()=>{
+
+    document
+      .getElementById('restoreInput')
+      .click();
+  });
+
+
+document
+  .getElementById('restoreInput')
+  .addEventListener('change', e=>{
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = ev => {
+
+      const data = JSON.parse(ev.target.result);
+
+      rooms = data.rooms;
+      rules = data.rules;
+      currentRoomIdx = data.currentRoomIdx;
+
+      renderAll();
+      saveData();
+    };
+
+    reader.readAsText(file);
+  });
+
+// =============================
+// AUTO BACKUP
+// =============================
+
+setInterval(()=>{
+
+  localStorage.setItem(
+    'bango_auto_backup',
+    JSON.stringify(makeBackupData())
+  );
+
+},30000);
+
+// =============================
+// PRESENCE
+// =============================
+
+async function updatePresence() {
+
+  await supabaseClient
+    .from('bango_presence')
+    .upsert({
+      room_id: roomId,
+      user_id: currentUserId,
+      nickname,
+      updated_at:new Date()
+    });
+
+  const { data } = await supabaseClient
+    .from('bango_presence')
+    .select('*')
+    .eq('room_id', roomId);
+
+  document.getElementById('onlineUsers').textContent =
+    data?.length || 0;
+}
+
+setInterval(updatePresence,5000);
+
+// =============================
+// PWA
+// =============================
+
+let deferredPrompt;
+
+window.addEventListener(
+  'beforeinstallprompt',
+  e=>{
+
+    e.preventDefault();
+    deferredPrompt = e;
+  }
+);
+
+
+document
+  .getElementById('installBtn')
+  .addEventListener('click', async ()=>{
+
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+  });
+
+// =============================
+// RANKING
+// =============================
+
+function renderRanking() {
+
+  const ranking = rooms
+    .map(r=>({
+      name:r.name,
+      score:calcScore(r)
+    }))
+    .sort((a,b)=>b.score-a.score);
+
+  document.getElementById('ranking').innerHTML =
+    '<h3>🏆 랭킹</h3>' +
+    ranking.map((r,i)=>
+      `<div>${i+1}. ${r.name} - ${r.score}점</div>`
+    ).join('');
+}
+
+// =============================
+// RENDER
+// =============================
+
+function renderAll() {
+
+  renderRooms();
+  renderBoard();
+  updateScore();
+  renderRanking();
+
+  document.getElementById('nicknameView').textContent = nickname;
+}
+
+// =============================
+// INIT
+// =============================
+
+async function init() {
+
+  loadData();
+
+  await loadCloud();
+
+  renderAll();
+
+  listenRealtime();
+
+  updatePresence();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js');
   }
 }
 
-// ══════════════════════════════════
-//  INIT
-// ══════════════════════════════════
-renderRoomTabs(); renderBoard(); updateScoreUI();
+init();
+
 </script>
+
 </body>
 </html>
+```
+
+---
+
+# service-worker.js
+
+```js
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+
+self.addEventListener('fetch', () => {});
+```
+
+---
+
+# manifest.json
+
+```json
+{
+  "name": "BANGO Multiplayer",
+  "short_name": "BANGO",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#ff6b35",
+  "icons": []
+}
+```
+
+---
+
+# Supabase SQL
+
+```sql
+create table bango_rooms (
+  id text primary key,
+  data jsonb,
+  updated_at timestamptz default now()
+);
+
+create table bango_presence (
+  room_id text,
+  user_id text primary key,
+  nickname text,
+  updated_at timestamptz default now()
+);
+
+alter table bango_rooms enable row level security;
+alter table bango_presence enable row level security;
+
+create policy "public room access"
+on bango_rooms
+for all
+using (true)
+with check (true);
+
+create policy "public presence access"
+on bango_presence
+for all
+using (true)
+with check (true);
+```
+
+---
+
+# Supabase Storage
+
+bucket 이름:
+
+```text
+bango-images
+```
+
+Public bucket 활성화 필요.
