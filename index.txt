@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>추억 수집 BANGO!</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  padding:20px;
+  background:#0a0a12;
+  color:white;
+  font-family:sans-serif;
+}
+
+h1{
+  color:#ff6b35;
+  margin-bottom:10px;
+}
+
+.top{
+  margin-bottom:20px;
+  line-height:1.8;
+}
+
+.room-tabs{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
+
+.room-tab{
+  background:#1a1a2e;
+  padding:10px 16px;
+  border-radius:999px;
+  cursor:pointer;
+  border:2px solid transparent;
+}
+
+.room-tab.active{
+  background:#ff6b35;
+}
+
+.controls{
+  margin-bottom:20px;
+}
+
+button{
+  background:#ff6b35;
+  color:white;
+  border:none;
+  border-radius:999px;
+  padding:12px 18px;
+  cursor:pointer;
+  font-size:15px;
+}
+
+.board{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  max-width:700px;
+}
+
+.cell{
+  aspect-ratio:1;
+  background:#1a1a2e;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+  cursor:pointer;
+  border:2px solid rgba(255,255,255,.1);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+  padding:8px;
+}
+
+.cell:hover{
+  transform:scale(1.02);
+}
+
+.cell img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.label{
+  font-size:13px;
+  color:white;
+}
+
+.preview-wrap{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.8);
+
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+.preview-box{
+  width:90%;
+  max-width:400px;
+  background:#111827;
+  border-radius:20px;
+  padding:20px;
+}
+
+.preview-box img{
+  width:100%;
+  border-radius:14px;
+  margin-bottom:15px;
+  max-height:400px;
+  object-fit:cover;
+}
+
+.preview-buttons{
+  display:flex;
+  gap:10px;
+}
+
+.preview-buttons button{
+  flex:1;
+}
+
+.cancel-btn{
+  background:#444;
+}
+
+</style>
+</head>
+<body>
+
+<h1>🎯 추억 수집 BANGO!</h1>
+
+<div class="top">
+👤 <span id="nicknameView"></span><br>
+🟢 접속자: <span id="onlineUsers">0</span>명
+</div>
+
+<div class="room-tabs" id="roomTabs"></div>
+
+<div class="controls">
+  <button id="addRoomBtn">🏠 방 추가</button>
+</div>
+
+<div class="board" id="board"></div>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+
+<!-- 미리보기 -->
+<div class="preview-wrap" id="previewWrap">
+
+  <div class="preview-box">
+
+    <img id="previewImage">
+
+    <div class="preview-buttons">
+      <button id="uploadBtn">업로드</button>
+      <button class="cancel-btn" id="cancelBtn">취소</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+// =======================
+// SUPABASE
+// =======================
+
+const SUPABASE_URL = 'https://eqplolutiqbjklcqnayn.supabase.co';
+const SUPABASE_KEY = '여기에_anon_key';
+
+const supabaseClient =
+  supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+// =======================
+// LABEL
+// =======================
+
+const LABELS = [
+"거울샷","담임선생님과 함께","우리들의 야식샷","파워레인저샷","그림자샷",
+"별 손가락 샷","스누피와 함께","축소샷","남학생 공항룩","비행기샷",
+"헬멧착용샷","여학생 공항룩","단체샷","2만보 인증샷","리더의 무게샷",
+"입 들어가샷","해양생물과 함께","별모양포즈","기념품 플렉스샷","오설록 포즈",
+"바퀴벌레샷","남녀학생 함께","끌려다니기 샷","하트샷","돌하르방샷"
+];
+
+// =======================
+// ROOM
+// =======================
+
+let roomId =
+  location.hash.replace('#','') ||
+  'main';
+
+location.hash = roomId;
+
+function makeRoom(name){
+
+  return{
+    name,
+    cells:Array.from(
+      {length:25},
+      (_,i)=>({
+        image:null,
+        label:LABELS[i]
+      })
+    )
+  };
+}
+
+let rooms = [makeRoom('1반')];
+let currentRoomIdx = 0;
+
+function room(){
+  return rooms[currentRoomIdx];
+}
+
+// =======================
+// USER
+// =======================
+
+let nickname =
+  localStorage.getItem('bango_name');
+
+if(!nickname){
+
+  nickname =
+    prompt('닉네임 입력') || '익명';
+
+  localStorage.setItem(
+    'bango_name',
+    nickname
+  );
+}
+
+document.getElementById(
+  'nicknameView'
+).textContent = nickname;
+
+// =======================
+// DOM
+// =======================
+
+const board =
+  document.getElementById('board');
+
+const roomTabs =
+  document.getElementById('roomTabs');
+
+const fileInput =
+  document.getElementById('fileInput');
+
+const previewWrap =
+  document.getElementById('previewWrap');
+
+const previewImage =
+  document.getElementById('previewImage');
+
+let pendingCell = null;
+let selectedFile = null;
+
+// =======================
+// SAVE
+// =======================
+
+async function saveCloud(){
+
+  await supabaseClient
+    .from('bango_rooms')
+    .upsert({
+      id:roomId,
+      data:{
+        rooms,
+        currentRoomIdx
+      }
+    });
+}
+
+async function loadCloud(){
+
+  const { data } =
+    await supabaseClient
+      .from('bango_rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single();
+
+  if(!data) return;
+
+  rooms =
+    data.data.rooms || rooms;
+
+  currentRoomIdx =
+    data.data.currentRoomIdx || 0;
+}
+
+// =======================
+// REALTIME
+// =======================
+
+function realtime(){
+
+  supabaseClient
+    .channel('room-sync')
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'bango_rooms',
+        filter:`id=eq.${roomId}`
+      },
+      payload=>{
+
+        if(!payload.new) return;
+
+        rooms =
+          payload.new.data.rooms;
+
+        currentRoomIdx =
+          payload.new.data.currentRoomIdx;
+
+        renderAll();
+      }
+    )
+    .subscribe();
+}
+
+// =======================
+// IMAGE
+// =======================
+
+async function uploadImage(file){
+
+  const path =
+    `${roomId}/${Date.now()}_${file.name}`;
+
+  await supabaseClient
+    .storage
+    .from('bango-images')
+    .upload(path, file);
+
+  const { data } =
+    supabaseClient
+      .storage
+      .from('bango-images')
+      .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
+// =======================
+// BOARD
+// =======================
+
+function renderBoard(){
+
+  board.innerHTML = '';
+
+  room().cells.forEach((cell,i)=>{
+
+    const div =
+      document.createElement('div');
+
+    div.className = 'cell';
+
+    if(cell.image){
+
+      div.innerHTML =
+        `<img src="${cell.image}">`;
+
+    }else{
+
+      div.innerHTML =
+        `<div class="label">${cell.label}</div>`;
+    }
+
+    div.onclick = ()=>{
+
+      pendingCell = i;
+
+      fileInput.click();
+    };
+
+    board.appendChild(div);
+  });
+}
+
+// =======================
+// ROOM TAB
+// =======================
+
+function renderRooms(){
+
+  roomTabs.innerHTML = '';
+
+  rooms.forEach((r,i)=>{
+
+    const tab =
+      document.createElement('div');
+
+    tab.className =
+      'room-tab' +
+      (i===currentRoomIdx
+        ? ' active'
+        : '');
+
+    tab.textContent = r.name;
+
+    tab.onclick = ()=>{
+
+      currentRoomIdx = i;
+
+      renderAll();
+
+      saveCloud();
+    };
+
+    roomTabs.appendChild(tab);
+  });
+}
+
+// =======================
+// RENDER
+// =======================
+
+function renderAll(){
+
+  renderRooms();
+  renderBoard();
+}
+
+// =======================
+// FILE
+// =======================
+
+fileInput.addEventListener(
+  'change',
+  e=>{
+
+    const file =
+      e.target.files[0];
+
+    if(!file) return;
+
+    selectedFile = file;
+
+    const reader =
+      new FileReader();
+
+    reader.onload = ev=>{
+
+      previewImage.src =
+        ev.target.result;
+
+      previewWrap.style.display =
+        'flex';
+    };
+
+    reader.readAsDataURL(file);
+  }
+);
+
+// =======================
+// UPLOAD
+// =======================
+
+document
+  .getElementById('uploadBtn')
+  .onclick = async ()=>{
+
+    if(!selectedFile) return;
+
+    const url =
+      await uploadImage(
+        selectedFile
+      );
+
+    room().cells[
+      pendingCell
+    ].image = url;
+
+    previewWrap.style.display =
+      'none';
+
+    renderAll();
+
+    saveCloud();
+
+    selectedFile = null;
+  };
+
+// =======================
+// CANCEL
+// =======================
+
+document
+  .getElementById('cancelBtn')
+  .onclick = ()=>{
+
+    previewWrap.style.display =
+      'none';
+
+    selectedFile = null;
+  };
+
+// =======================
+// ADD ROOM
+// =======================
+
+document
+  .getElementById('addRoomBtn')
+  .onclick = ()=>{
+
+    const name =
+      prompt('방 이름');
+
+    if(!name) return;
+
+    rooms.push(
+      makeRoom(name)
+    );
+
+    renderAll();
+
+    saveCloud();
+  };
+
+// =======================
+// ONLINE
+// =======================
+
+async function updatePresence(){
+
+  const userId =
+    localStorage.getItem(
+      'bango_user_id'
+    ) ||
+    Math.random()
+      .toString(36)
+      .substring(2,10);
+
+  localStorage.setItem(
+    'bango_user_id',
+    userId
+  );
+
+  await supabaseClient
+    .from('bango_presence')
+    .upsert({
+      room_id:roomId,
+      user_id:userId,
+      nickname:nickname,
+      updated_at:
+        new Date()
+    });
+
+  const { data } =
+    await supabaseClient
+      .from('bango_presence')
+      .select('*')
+      .eq('room_id', roomId);
+
+  document.getElementById(
+    'onlineUsers'
+  ).textContent =
+    data?.length || 0;
+}
+
+setInterval(
+  updatePresence,
+  5000
+);
+
+// =======================
+// INIT
+// =======================
+
+async function init(){
+
+  await loadCloud();
+
+  renderAll();
+
+  realtime();
+
+  updatePresence();
+}
+
+init();
+
+</script>
+
+</body>
+</html>
+```
